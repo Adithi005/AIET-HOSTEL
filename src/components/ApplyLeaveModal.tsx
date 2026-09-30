@@ -23,16 +23,24 @@ import {
   Landmark,
   QrCode,
   Sparkles,
+  Clock,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { LeaveApplication } from '../types';
 import { getLeaveEscalationInfo } from '../utils/escalation';
 import { checkHolidayOverlap } from '../utils/holidays';
-import { getCutoffStatus, calculateLeaveSessionDays } from '../utils/leaveTiming';
+import {
+  getCutoffStatus,
+  calculateLeaveSessionDays,
+  getMinEligibleLeaveStartDate,
+  getEligibleLeaveDatesList,
+  validateLeaveStartDate,
+} from '../utils/leaveTiming';
 
 interface ApplyLeaveModalProps {
   visible: boolean;
   leavesCount: number;
+  usn?: string;
   onClose: () => void;
   onSubmitSuccess: () => void;
   onApplyLeave: (params: {
@@ -53,13 +61,27 @@ interface ApplyLeaveModalProps {
 export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
   visible,
   leavesCount,
+  usn = '1RV22CS089',
   onClose,
   onSubmitSuccess,
   onApplyLeave,
 }) => {
+  // Institutional Policy: Leave must be applied 2 days before 5:00 PM.
+  // E.g., if today is Sep 29, applications start strictly from Oct 2.
+  const minLeaveEligible = React.useMemo(() => getMinEligibleLeaveStartDate(), []);
+  const eligibleDatesList = React.useMemo(() => getEligibleLeaveDatesList(), []);
+
+  const defaultEnd = React.useMemo(() => {
+    const parts = minLeaveEligible.minDateStr.split('-');
+    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    d.setDate(d.getDate() + 2);
+    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }, [minLeaveEligible]);
+
   const [leaveType, setLeaveType] = useState<LeaveApplication['leaveType']>('Home Visit');
-  const [startDate, setStartDate] = useState('2024-10-25');
-  const [endDate, setEndDate] = useState('2024-10-27');
+  const [startDate, setStartDate] = useState(minLeaveEligible.minDateStr);
+  const [endDate, setEndDate] = useState(defaultEnd);
   const [startSession, setStartSession] = useState<'Morning' | 'Evening'>('Morning');
   const [returnSession, setReturnSession] = useState<'Morning' | 'Evening'>('Morning');
   const [totalDays, setTotalDays] = useState('3');
@@ -75,8 +97,11 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
   const isGovtHoliday = isManualGovtHoliday || holidayCheck.isHoliday;
   const holidayName = holidayCheck.holidayNames || 'Government / College Declared Holiday';
 
-  // 2-Day Prior 5:00 PM Cutoff Check
+  // 2-Day Prior 5:00 PM Cutoff Check and Minimum Date Validation
   const cutoff = getCutoffStatus(startDate);
+  const leaveDateValidation = validateLeaveStartDate(startDate);
+  const isDateBeforeMinimum = !leaveDateValidation.isAllowed;
+  const isCutoffMissed = (cutoff.isMissed || isDateBeforeMinimum) && !isGovtHoliday;
 
   // Session Quota & Weekend Exemption Calculation
   const sessionCalc = calculateLeaveSessionDays({
@@ -93,6 +118,7 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
       setTotalDays(String(sessionCalc.totalCalendarDays));
     }
   }, [startDate, startSession, endDate, returnSession, sessionCalc.totalCalendarDays]);
+
 
   const handlePickDocument = async () => {
     try {
@@ -128,6 +154,17 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
     }
 
     const isGoingHome = leaveType === 'Home Visit';
+
+    // 2-DAY PRIOR 5:00 PM CUTOFF & ADVANCE NOTICE ENFORCEMENT:
+    // If the student fails to apply at least 2 days before 5:00 PM, or selects a short-notice departure date, only the AO Admin can generate a Duplicate / Compensation Pass!
+    if (isCutoffMissed) {
+      Alert.alert(
+        '⛔ Application Cutoff Passed (2 Days Before 5:00 PM)',
+        `Institutional Leave Rule:\nStudents must apply for hostel leave at least 2 days before 5:00 PM.\n\nAs of today (${minLeaveEligible.todayFormatted}), leave applications start from ${minLeaveEligible.minFormatted} onwards.\n\nThe requested departure on ${startDate} is closed for student self-submission.\n\nOnly the Administrative Officer (AO Admin) can generate an authorized Duplicate Pass or Compensation Pass by entering your USN, departure & return dates, and departure & return times.`
+      );
+      return;
+    }
+
 
     // MANDATORY VALIDATION: If leaves >= 10, medical doc is required for medical leaves!
     if (escalation.requiresMedicalCert && !medicalDocUri && leaveType === 'Medical') {
@@ -165,15 +202,15 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
           '⚠️ Late Application Submitted',
           `You missed the 2-day prior 5:00 PM cutoff for ${startDate}.\nYour application is queued. If urgent gate departure is required, please request the Administrative Officer (AO) to issue an AO Duplicate Coupon.`
         );
+      } else if (isGovtHoliday) {
+        Alert.alert(
+          '⚡ Govt Holiday Pass Generated!',
+          `Your pass for "${holidayName}" has been directly generated! This leave is NOT considered against your personal quota (0 Days charged).`
+        );
       } else if (isGoingHome) {
         Alert.alert(
           '🎉 Going Home Outpass Generated!',
           'Your Home Visit application has been automatically approved and an official Gate Pass Token has been generated immediately.'
-        );
-      } else if (isGovtHoliday) {
-        Alert.alert(
-          '🏛️ Govt Holiday Leave Submitted',
-          `Leave applied during "${holidayName}". This holiday is exempt from your personal leave quota (0 Days charged).`
         );
       } else {
         Alert.alert(
@@ -208,6 +245,15 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
           </View>
 
           <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+            {/* APPLICANT IDENTITY: ONLY USN IS DISPLAYED OR REVEALED */}
+            <View style={styles.applicantUsnStrip}>
+              <View style={styles.applicantUsnBadge}>
+                <Text style={styles.applicantUsnBadgeText}>APPLICANT USN</Text>
+              </View>
+              <Text style={styles.applicantUsnValue}>{usn}</Text>
+              <Text style={styles.applicantUsnPolicy}>(Only USN is displayed or revealed on application)</Text>
+            </View>
+
             {/* ESCALATION BANNER */}
             {escalation.isExpiredLimit ? (
               <View style={styles.expiredBanner}>
@@ -279,14 +325,79 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
               </View>
             )}
 
+            {/* ADVANCE NOTICE POLICY BANNER */}
+            <View style={styles.advanceRuleNotice}>
+              <Clock size={16} color="#4338CA" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.advanceRuleTitle}>2-Day Prior 5:00 PM Advance Notice Rule</Text>
+                <Text style={styles.advanceRuleText}>
+                  Today is <Text style={{ fontWeight: '700' }}>{minLeaveEligible.todayFormatted}</Text>. Earliest departure date you can apply for is{' '}
+                  <Text style={{ fontWeight: '800', color: '#312E81' }}>{minLeaveEligible.minFormatted}</Text>. Earlier dates require an AO Admin Compensation Pass.
+                </Text>
+              </View>
+            </View>
+
+            {/* QUICK-SELECT ELIGIBLE DEPARTURE DATES (FROM MIN DATE) */}
+            <Text style={styles.fieldLabel}>
+              Eligible Departure Dates (From {minLeaveEligible.minFormatted}) *
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.quickDatesScroll}
+            >
+              {eligibleDatesList.map((item) => {
+                const isSelected = startDate === item.dateStr;
+                return (
+                  <TouchableOpacity
+                    key={item.dateStr}
+                    style={[styles.quickDateChip, isSelected && styles.quickDateChipActive]}
+                    onPress={() => {
+                      setStartDate(item.dateStr);
+                      const p = item.dateStr.split('-');
+                      const d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+                      d.setDate(d.getDate() + 2);
+                      const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+                      setEndDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.quickDateDay, isSelected && styles.quickDateTextActive]}>
+                      {item.dayName}
+                    </Text>
+                    <Text style={[styles.quickDateFormatted, isSelected && styles.quickDateTextActive]}>
+                      {item.formattedDate}
+                    </Text>
+                    {item.isWeekend && (
+                      <View
+                        style={[
+                          styles.quickDateBadge,
+                          isSelected && { backgroundColor: 'rgba(255, 255, 255, 0.25)' },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.quickDateBadgeText,
+                            isSelected && { color: '#FFFFFF' },
+                          ]}
+                        >
+                          Weekend
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
             {/* Dates & Days */}
             <View style={styles.rowFields}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.fieldLabel}>Start Date</Text>
-                <View style={styles.inputWithIcon}>
-                  <Calendar size={16} color={colors.textMuted} />
+                <View style={[styles.inputWithIcon, isDateBeforeMinimum && styles.inputWithIconError]}>
+                  <Calendar size={16} color={isDateBeforeMinimum ? '#DC2626' : colors.textMuted} />
                   <TextInput
-                    style={styles.textInputInline}
+                    style={[styles.textInputInline, isDateBeforeMinimum && { color: '#DC2626', fontWeight: '700' }]}
                     value={startDate}
                     onChangeText={setStartDate}
                     placeholder="YYYY-MM-DD"
@@ -319,28 +430,28 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
             </View>
 
             {/* 2-DAY PRIOR 5:00 PM CUTOFF BANNER */}
-            {cutoff.isMissed ? (
+            {isCutoffMissed ? (
               <View style={styles.cutoffMissedBanner}>
                 <View style={styles.cutoffBannerHeader}>
-                  <AlertTriangle size={17} color="#DC2626" />
-                  <Text style={styles.cutoffMissedTitle}>⚠️ 2-Day Prior 5:00 PM Deadline Missed</Text>
+                  <ShieldAlert size={18} color="#DC2626" />
+                  <Text style={styles.cutoffMissedTitle}>⛔ 2-Day Prior 5:00 PM Cutoff (Direct Submission Blocked)</Text>
                 </View>
                 <Text style={styles.cutoffMissedText}>
-                  {cutoff.message}
+                  Applications for departure on <Text style={{ fontWeight: '800' }}>{startDate}</Text> cannot be submitted directly. As of today ({minLeaveEligible.todayFormatted}), leave can only be applied starting from <Text style={{ fontWeight: '800', color: '#1E3A8A' }}>{minLeaveEligible.minFormatted}</Text>.
                   {'\n\n'}
-                  <Text style={{ fontWeight: '700' }}>Hostel Rule: </Text>
-                  Under institutional guidelines, late applications require an authorized{' '}
-                  <Text style={{ fontWeight: '700', color: '#B45309' }}>AO Duplicate Coupon</Text> issued by the Administrative Officer.
+                  <Text style={{ fontWeight: '800', color: '#991B1B' }}>Institutional Policy: </Text>
+                  If you require departure before {minLeaveEligible.minFormatted} (such as {startDate}), you must contact the <Text style={{ fontWeight: '800' }}>Administrative Officer (AO Admin)</Text> to generate an official <Text style={{ fontWeight: '800', color: '#7C2D12' }}>Duplicate Pass / Compensation Pass</Text>.
                 </Text>
               </View>
             ) : (
               <View style={styles.cutoffValidBanner}>
                 <CheckCircle2 size={15} color="#16A34A" />
                 <Text style={styles.cutoffValidText}>
-                  On-Time: 2-day cutoff met ({cutoff.hoursDifference}h before {cutoff.deadlineFormatted})
+                  On-Time: 2-day cutoff met. Departure starts on or after {minLeaveEligible.minFormatted}.
                 </Text>
               </View>
             )}
+
 
             {/* DEPARTURE & RETURN SESSION SELECTOR */}
             <View style={styles.sessionSection}>
@@ -537,16 +648,20 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
             <TouchableOpacity
               style={[
                 styles.submitBtn,
-                escalation.requiresMedicalCert && !medicalDocUri && styles.submitBtnDisabled,
+                ((escalation.requiresMedicalCert && !medicalDocUri) || isCutoffMissed) &&
+                  styles.submitBtnDisabled,
+                isCutoffMissed && styles.submitBtnCutoffBlocked,
               ]}
               onPress={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isCutoffMissed}
             >
               {isSubmitting ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <Text style={styles.submitBtnText}>
-                  {escalation.requiresMedicalCert
+                  {isCutoffMissed
+                    ? `⛔ Blocked: Apply From ${minLeaveEligible.minFormatted} (Contact AO)`
+                    : escalation.requiresMedicalCert
                     ? 'Submit to Principal'
                     : `Submit to ${escalation.requiredApprover}`}
                 </Text>
@@ -564,6 +679,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: colors.surface,
@@ -571,6 +687,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     maxHeight: '90%',
     paddingBottom: 24,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -852,6 +971,9 @@ const styles = StyleSheet.create({
   submitBtnDisabled: {
     backgroundColor: colors.textMuted,
   },
+  submitBtnCutoffBlocked: {
+    backgroundColor: '#DC2626',
+  },
   submitBtnText: {
     fontSize: 14,
     fontWeight: '700',
@@ -1051,5 +1173,118 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     fontWeight: '500',
   },
+  advanceRuleNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  advanceRuleTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#3730A3',
+  },
+  advanceRuleText: {
+    fontSize: 11,
+    color: '#312E81',
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  quickDatesScroll: {
+    gap: 8,
+    paddingBottom: 4,
+    marginBottom: 12,
+  },
+  quickDateChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center',
+    minWidth: 78,
+  },
+  quickDateChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickDateDay: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  quickDateFormatted: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  quickDateTextActive: {
+    color: '#FFFFFF',
+  },
+  quickDateBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+    marginTop: 3,
+  },
+  quickDateBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  inputWithIconError: {
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+  },
+  applicantUsnStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    gap: 8,
+  },
+  applicantUsnBadge: {
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  applicantUsnBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  applicantUsnValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E1B4B',
+  },
+  applicantUsnPolicy: {
+    fontSize: 10,
+    color: '#6366F1',
+    fontStyle: 'italic',
+    flex: 1,
+    textAlign: 'right',
+  },
 });
+
 

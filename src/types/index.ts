@@ -85,6 +85,10 @@ export interface LeaveApplication {
   isLateApplication?: boolean; // Applied after 2-day 5 PM cutoff
   isDuplicateCoupon?: boolean; // Issued via AO override coupon
   duplicateCouponNumber?: string; // e.g. COUPON-74920
+  isCompensationPass?: boolean; // Issued by AO Admin when student missed 2-day 5 PM cutoff
+  compensationPassNumber?: string; // e.g. COMP-PASS-88412
+  departureTime?: string; // Explicit departure time (e.g. "09:00 AM" or "05:00 PM")
+  expectedReturnTime?: string; // Explicit expected return time (e.g. "06:00 PM")
   isWeekendExempt?: boolean; // Saturday PM to Monday AM weekend exemption
   destination?: string;
   emergencyContact?: string;
@@ -189,6 +193,9 @@ export interface GateLogEntry {
   remarks?: string;
   isLate?: boolean;
   curfewTime?: string;
+  isLateReturn?: boolean;
+  lateDurationMinutes?: number;
+  status?: string;
 }
 
 export interface StudentNotification {
@@ -232,7 +239,12 @@ export interface MessRating {
   date: string;
   mealType: string;
   rating: number; // 1 to 5
-  feedback: string;
+  feedback?: string;
+  photoUri?: string;
+  usn?: string;
+  studentName?: string;
+  roomNumber?: string;
+  createdAt?: string;
 }
 
 export interface StudentDocument {
@@ -329,5 +341,74 @@ export interface MasterActivityItem {
   actor: string;
   targetUsn?: string;
 }
+
+// =========================================================
+// VEHICLE BOOKING & HOSTEL CARE TRANSIT
+// =========================================================
+export type VehicleType = 'Eeco' | 'TT' | 'Mini Bus' | 'Bus';
+export type VehicleDestination = 'Vidyagiri' | 'Health Center';
+
+export interface VehicleSlot {
+  id: string;
+  vehicleType: VehicleType;
+  destination: VehicleDestination;
+  departureTime: string; // e.g. "09:30 AM"
+  departureMinutesFromMidnight: number; // For accurate 15-minute cutoff checking
+  vehiclePlate: string; // e.g. "KA-19-M-2041"
+  capacity: number; // Eeco: 7, TT: 14, Mini Bus: 26, Bus: 45
+  driverName: string;
+  driverContact: string;
+  pickupPoint: string; // "Hostel Main Gate / Care Porch"
+  notes?: string;
+}
+
+export interface VehicleBooking {
+  id: string;
+  bookingToken: string; // e.g. "VB-VID-8241"
+  usn: string;
+  studentName: string;
+  roomNumber: string;
+  contactNumber: string;
+  destination: VehicleDestination;
+  vehicleType: VehicleType;
+  departureTime: string;
+  departureDate: string; // YYYY-MM-DD
+  pickupPoint: string;
+  driverName: string;
+  driverContact: string;
+  vehiclePlate: string;
+  seatNumber: number;
+  reason: string;
+  status: 'Confirmed' | 'Boarded' | 'Cancelled' | 'Completed';
+  bookedAt: string;
+  isHealthCareEmergency?: boolean;
+}
+
+export type AoPetitionType =
+  | 'Fees Delay Permission'
+  | 'Mess Bill Reduction'
+  | 'Study Certificate'
+  | 'Marks Card / Grade Transcript';
+
+export interface AoStudentPetition {
+  id: string;
+  usn: string;
+  studentName: string;
+  roomNumber: string;
+  hostelBlock: string;
+  type: AoPetitionType;
+  reason: string;
+  requestedDate: string;
+  targetSemester?: number;
+  expectedPaymentDate?: string;
+  reductionDays?: number;
+  purpose?: string;
+  status: 'Pending AO Approval' | 'Approved by AO' | 'Rejected by AO';
+  aoRemarks?: string;
+  approvedDate?: string;
+  certificateRefNumber?: string;
+  dispatchedDocumentTitle?: string;
+}
+
 
 

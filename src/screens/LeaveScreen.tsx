@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  Platform,
+  Image,
 } from 'react-native';
 import {
   CalendarDays,
@@ -18,6 +20,10 @@ import {
   ArrowRight,
   ShieldAlert,
   ArrowUpRight,
+  ArrowDownLeft,
+  History,
+  LogIn,
+  LogOut,
   Lock,
   Compass,
   MapPin,
@@ -25,6 +31,7 @@ import {
   Sparkles,
   Gift,
   Ticket,
+  User,
 } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { ApplyLeaveModal } from '../components/ApplyLeaveModal';
@@ -34,17 +41,27 @@ import { DigitalOutpassModal } from '../components/DigitalOutpassModal';
 import { ApplyHolidayPassModal } from '../components/ApplyHolidayPassModal';
 import { NotificationsModal } from '../components/NotificationsModal';
 import { colors } from '../theme/colors';
-import { UserProfile, LeaveApplication, OutingApplication, StudentNotification } from '../types';
+import {
+  UserProfile,
+  LeaveApplication,
+  OutingApplication,
+  StudentNotification,
+  GateLogEntry,
+} from '../types';
 import { StorageService } from '../services/storage';
 import { getLeaveEscalationInfo } from '../utils/escalation';
 import { GOVT_HOLIDAYS } from '../utils/holidays';
 import { CURFEW_CONFIG, getCurfewStatus } from '../utils/curfew';
 
-export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [myLeaves, setMyLeaves] = useState<LeaveApplication[]>([]);
   const [myOutings, setMyOutings] = useState<OutingApplication[]>([]);
-  const [activeTab, setActiveTab] = useState<'outings' | 'leaves' | 'holidays'>('outings');
+  const [myGateLogs, setMyGateLogs] = useState<GateLogEntry[]>([]);
+  const [gateFilter, setGateFilter] = useState<'all' | 'Check Out' | 'Check In'>('all');
+  const [activeTab, setActiveTab] = useState<'outings' | 'leaves' | 'gatelogs' | 'holidays'>(
+    route?.params?.initialTab || 'outings'
+  );
   const [isApplyModalVisible, setIsApplyModalVisible] = useState(false);
   const [isOutingModalVisible, setIsOutingModalVisible] = useState(false);
   const [isHolidayModalVisible, setIsHolidayModalVisible] = useState(false);
@@ -60,10 +77,12 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       const p = await StorageService.getProfile();
       const l = await StorageService.getMyLeaves();
       const outs = await StorageService.getMyOutings();
+      const logs = await StorageService.getMyGateLogs(p.usn);
       const notifs = await StorageService.getNotifications(p.usn);
       setProfile(p);
       setMyLeaves(l);
       setMyOutings(outs);
+      setMyGateLogs(logs);
       setNotifications(notifs);
     } catch (err) {
       console.warn('Error loading student history', err);
@@ -73,6 +92,12 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  React.useEffect(() => {
+    if (route?.params?.initialTab) {
+      setActiveTab(route.params.initialTab);
+    }
+  }, [route?.params?.initialTab]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -147,43 +172,8 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 </View>
               </View>
               <Text style={styles.exemptNoticeSub}>
-                Movement History • Strictly stores your logged-in outings and leaves
+                View all your approved outings and leave records
               </Text>
-
-              <View style={styles.historyStatsRow}>
-                <TouchableOpacity
-                  style={[styles.historyStatBadge, activeTab === 'outings' && styles.historyStatBadgeActive]}
-                  onPress={() => setActiveTab('outings')}
-                  activeOpacity={0.7}
-                >
-                  <Compass size={13} color={activeTab === 'outings' ? colors.primary : colors.textSecondary} />
-                  <Text style={[styles.historyStatText, activeTab === 'outings' && styles.historyStatTextActive]}>
-                    Outings: {myOutings.length}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.historyStatBadge, activeTab === 'leaves' && styles.historyStatBadgeActive]}
-                  onPress={() => setActiveTab('leaves')}
-                  activeOpacity={0.7}
-                >
-                  <CalendarDays size={13} color={activeTab === 'leaves' ? colors.primary : colors.textSecondary} />
-                  <Text style={[styles.historyStatText, activeTab === 'leaves' && styles.historyStatTextActive]}>
-                    Leaves: {myLeaves.length}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.historyStatBadge, activeTab === 'holidays' && styles.historyStatBadgeActive]}
-                  onPress={() => setActiveTab('holidays')}
-                  activeOpacity={0.7}
-                >
-                  <Sparkles size={13} color={activeTab === 'holidays' ? '#6366F1' : colors.textSecondary} />
-                  <Text style={[styles.historyStatText, activeTab === 'holidays' && { color: '#6366F1', fontWeight: '800' }]}>
-                    Govt Holidays
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
 
             <TouchableOpacity
@@ -215,24 +205,30 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <View style={styles.alertNotice}>
               <ShieldAlert size={16} color="#991B1B" />
               <Text style={styles.alertNoticeText}>
-                Leave quota expired (&gt;10). Medical proof & Principal approval required.
+                Leave limit reached (over 10 days). Requires medical proof and Principal approval.
               </Text>
             </View>
           )}
         </View>
 
-        {/* Tab Toggle: 3 Sections (Outings, Leaves, Govt Holidays) */}
-        <View style={styles.tabToggleRow}>
+        {/* Tab Toggle: 4 Sections (Outing History, Leave History, Check In/Out Gate Logs, Govt Holidays) */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabToggleRowScroll}
+          style={styles.tabToggleRowWrapper}
+        >
           <TouchableOpacity
             style={[styles.tabToggleBtn, activeTab === 'outings' && styles.tabToggleActive]}
             onPress={() => setActiveTab('outings')}
             activeOpacity={0.8}
           >
             <Compass
-              size={15}
+              size={14}
               color={activeTab === 'outings' ? colors.primary : colors.textSecondary}
             />
             <Text
+              numberOfLines={1}
               style={[
                 styles.tabToggleText,
                 activeTab === 'outings' && styles.tabToggleTextActive,
@@ -248,10 +244,11 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             activeOpacity={0.8}
           >
             <CalendarDays
-              size={15}
+              size={14}
               color={activeTab === 'leaves' ? colors.primary : colors.textSecondary}
             />
             <Text
+              numberOfLines={1}
               style={[
                 styles.tabToggleText,
                 activeTab === 'leaves' && styles.tabToggleTextActive,
@@ -262,24 +259,45 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[styles.tabToggleBtn, activeTab === 'gatelogs' && styles.tabToggleActive]}
+            onPress={() => setActiveTab('gatelogs')}
+            activeOpacity={0.8}
+          >
+            <History
+              size={14}
+              color={activeTab === 'gatelogs' ? colors.primary : colors.textSecondary}
+            />
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.tabToggleText,
+                activeTab === 'gatelogs' && styles.tabToggleTextActive,
+              ]}
+            >
+              Check In / Out ({myGateLogs.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.tabToggleBtn, activeTab === 'holidays' && styles.tabToggleActive]}
             onPress={() => setActiveTab('holidays')}
             activeOpacity={0.8}
           >
             <Sparkles
-              size={15}
+              size={14}
               color={activeTab === 'holidays' ? '#6366F1' : colors.textSecondary}
             />
             <Text
+              numberOfLines={1}
               style={[
                 styles.tabToggleText,
                 activeTab === 'holidays' && { color: '#6366F1', fontWeight: '800' },
               ]}
             >
-              Govt Holidays
+              Holidays
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
 
         {/* =======================================================
             SECTION 1: HOSTEL OUTINGS & DAY OUTPASSES
@@ -289,8 +307,8 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             {/* Outing Top Bar */}
             <View style={styles.outingNoticeHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.outingNoticeTitle}>Hostel Day & Evening Outings</Text>
-                <Text style={styles.outingNoticeSub}>Curfew: 9:00 PM • Instant QR & Barcode Outpass</Text>
+                <Text style={styles.outingNoticeTitle}>Hostel Outing History</Text>
+                <Text style={styles.outingNoticeSub}>Sundays (9 AM – 4 PM) & Govt Holidays (9 AM – 2 PM) only</Text>
               </View>
               <TouchableOpacity
                 style={styles.applyBtn}
@@ -307,7 +325,7 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 <Compass size={36} color={colors.textMuted} />
                 <Text style={styles.emptyStateTitle}>No Outing History</Text>
                 <Text style={styles.emptyStateSub}>
-                  You have no recorded day or evening outings. Tap Apply Outing to generate your digital gate pass.
+                  You have not applied for any hostel outings yet.
                 </Text>
                 <TouchableOpacity
                   style={styles.emptyApplyBtn}
@@ -346,8 +364,26 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                             : styles.statusClosedText,
                         ]}
                       >
-                        {outing.status}
+                        {outing.status === 'Outpass Generated'
+                          ? '● Ready to Exit'
+                          : outing.status === 'Exited Gate'
+                          ? '● Outside Campus'
+                          : '● Returned'}
                       </Text>
+                    </View>
+                  </View>
+
+                  {/* Student Info with Photo & USN */}
+                  <View style={styles.cardStudentInfoRow}>
+                    {profile?.avatarUri ? (
+                      <Image source={{ uri: profile.avatarUri }} style={styles.cardAvatarPhoto} />
+                    ) : (
+                      <View style={styles.cardAvatarFallback}>
+                        <User size={13} color={colors.primary} />
+                      </View>
+                    )}
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                      <Text style={styles.cardStudentUsn}>USN: {outing.usn || profile?.usn}</Text>
                     </View>
                   </View>
 
@@ -357,28 +393,36 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     <Text style={styles.regIdBarcode}>{outing.barcode || `*REG-${outing.id}*`}</Text>
                   </View>
 
-                  {/* Timing */}
-                  <View style={styles.datesRow}>
-                    <Text style={styles.datesText}>
-                      {outing.outDate} • {outing.outTime} ➔ {outing.expectedInTime}
-                    </Text>
-                  </View>
-
-                  {/* Actual Gate Timestamps if Exited or Returned */}
-                  {(outing.checkOutTime || outing.checkInTime) && (
-                    <View style={styles.gateTimesRow}>
+                  {/* Clean Dedicated Date & Time Entry Box */}
+                  <View style={styles.entryTimingBox}>
+                    <View style={styles.entryTimingCol}>
+                      <Text style={styles.entryTimingLabelOut}>OUT (DEPARTURE)</Text>
+                      <Text style={styles.entryTimingDate}>{outing.outDate}</Text>
+                      <Text style={styles.entryTimingTime}>{outing.outTime}</Text>
                       {outing.checkOutTime && (
-                        <Text style={styles.gateTimeText}>
-                          Gate Check-Out: <Text style={{ fontWeight: '700' }}>{outing.checkOutTime}</Text>
-                        </Text>
+                        <Text style={styles.entryGateTime}>Exit Scan: {outing.checkOutTime}</Text>
                       )}
-                      {outing.checkInTime && (
-                        <Text style={styles.gateTimeText}>
-                          Gate Check-In: <Text style={{ fontWeight: '700' }}>{outing.checkInTime}</Text>
+                    </View>
+
+                    <View style={styles.entryTimingDivider} />
+
+                    <View style={styles.entryTimingCol}>
+                      <Text style={styles.entryTimingLabelIn}>IN (RETURN / CURFEW)</Text>
+                      <Text style={styles.entryTimingDate}>{outing.outDate}</Text>
+                      <Text style={[styles.entryTimingTime, { color: '#DC2626' }]}>
+                        {outing.expectedInTime}
+                      </Text>
+                      {outing.checkInTime ? (
+                        <Text style={[styles.entryGateTime, { color: '#059669' }]}>
+                          Return Scan: {outing.checkInTime}
+                        </Text>
+                      ) : (
+                        <Text style={styles.entryCurfewNotice}>
+                          {outing.isGovtHolidayOuting ? 'Curfew: 2:00 PM' : 'Curfew: 4:00 PM'}
                         </Text>
                       )}
                     </View>
-                  )}
+                  </View>
 
                   <Text style={styles.reasonText}>
                     <Text style={{ fontWeight: '700' }}>Destination: </Text>{outing.destination}
@@ -387,49 +431,35 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     <Text style={{ fontWeight: '700' }}>Purpose: </Text>{outing.purpose}
                   </Text>
 
-                  {/* Actions */}
-                  <View style={styles.outingActionRow}>
-                    <TouchableOpacity
-                      style={styles.viewPassBtn}
-                      onPress={() => setSelectedOutingForPass(outing)}
-                      activeOpacity={0.85}
-                    >
-                      <QrCode size={13} color="#FFFFFF" />
-                      <Text style={styles.viewPassBtnText}>View Digital Outpass</Text>
-                    </TouchableOpacity>
-
-                    {outing.status === 'Outpass Generated' && (
+                  {/* Actions / Closed Indicator */}
+                  {outing.status !== 'Returned & Closed' ? (
+                    <View style={styles.outingActionRow}>
                       <TouchableOpacity
-                        style={styles.quickExitBtn}
-                        onPress={() => handleGateExit(outing.id)}
+                        style={styles.viewPassBtn}
+                        onPress={() => setSelectedOutingForPass(outing)}
+                        activeOpacity={0.85}
                       >
-                        <Text style={styles.quickExitBtnText}>Exit Gate</Text>
+                        <QrCode size={13} color="#FFFFFF" />
+                        <Text style={styles.viewPassBtnText}>View Active Pass</Text>
                       </TouchableOpacity>
-                    )}
 
-                    {outing.status === 'Exited Gate' && (() => {
-                      const cooldown = StorageService.getCheckInCooldown(outing);
-                      return (
-                        <TouchableOpacity
-                          style={[styles.quickReturnBtn, cooldown.isRestricted && styles.quickReturnBtnLocked]}
-                          onPress={() => {
-                            if (cooldown.isRestricted) {
-                              Alert.alert(
-                                '⏳ Gate Check-In Locked (15-Min Policy)',
-                                `Checked out at ${outing.checkOutTime || 'recently'}.\n\nHostel regulations require a 15-minute cooldown outside campus before re-entry.\n\nTime remaining: ${cooldown.remainingFormatted} (Eligible at ${cooldown.allowedCheckInTime}).`
-                              );
-                              return;
-                            }
-                            handleGateReturn(outing.id);
-                          }}
-                        >
-                          <Text style={[styles.quickReturnBtnText, cooldown.isRestricted && styles.quickReturnBtnTextLocked]}>
-                            {cooldown.isRestricted ? `Locked (${cooldown.remainingFormatted})` : 'Mark Returned'}
+                      {outing.status === 'Exited Gate' && (
+                        <View style={styles.exitedGateTag}>
+                          <Clock size={12} color="#D97706" />
+                          <Text style={styles.exitedGateTagText}>
+                            Exited Gate • Outside Campus
                           </Text>
-                        </TouchableOpacity>
-                      );
-                    })()}
-                  </View>
+                        </View>
+                      )}
+                    </View>
+                  ) : (
+                    <View style={styles.closedHistoryEntryTag}>
+                      <CheckCircle2 size={12} color="#059669" />
+                      <Text style={styles.closedHistoryEntryText}>
+                        Returned on {outing.checkInTime || outing.outDate} • Pass Closed
+                      </Text>
+                    </View>
+                  )}
                 </View>
               ))
             )}
@@ -444,9 +474,9 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             {/* Leaves Top Bar */}
             <View style={styles.outingNoticeHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.outingNoticeTitle}>Hostel Extended & Home Leaves</Text>
+                <Text style={styles.outingNoticeTitle}>Hostel Leave History</Text>
                 <Text style={styles.outingNoticeSub}>
-                  Leaves Quota: {leavesTaken} Days • Tier: {escalation.requiredApprover}
+                  Apply 2 days before 5 PM • Quota: {leavesTaken} Days
                 </Text>
               </View>
               <TouchableOpacity
@@ -505,6 +535,20 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     </View>
                   </View>
 
+                  {/* Student Info with Photo & USN */}
+                  <View style={styles.cardStudentInfoRow}>
+                    {profile?.avatarUri ? (
+                      <Image source={{ uri: profile.avatarUri }} style={styles.cardAvatarPhoto} />
+                    ) : (
+                      <View style={styles.cardAvatarFallback}>
+                        <User size={13} color={colors.primary} />
+                      </View>
+                    )}
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                      <Text style={styles.cardStudentUsn}>USN: {leave.usn || profile?.usn}</Text>
+                    </View>
+                  </View>
+
                   {/* Registration ID & Barcode Tag */}
                   <View style={styles.regIdBadge}>
                     <Text style={styles.regIdText}>REG: {leave.registrationId || `REG-${leave.id}`}</Text>
@@ -534,16 +578,16 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     <View style={styles.emergencyTag}>
                       <ShieldAlert size={12} color="#DC2626" />
                       <Text style={styles.emergencyTagText}>
-                        🚨 AO Discretionary Emergency Leave (Instant Gate Pass)
+                        🚨 Emergency Leave Pass
                       </Text>
                     </View>
                   )}
 
-                  {leave.isDuplicateCoupon && (
+                  {(leave.isCompensationPass || leave.isDuplicateCoupon) && (
                     <View style={styles.couponTag}>
                       <Ticket size={12} color="#D97706" />
                       <Text style={styles.couponTagText}>
-                        🎫 AO Duplicate Coupon: {leave.duplicateCouponNumber || 'Sanctioned'}
+                        🎫 AO Compensation Pass #{leave.compensationPassNumber || leave.duplicateCouponNumber || 'Sanctioned'}
                       </Text>
                     </View>
                   )}
@@ -551,24 +595,42 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   {leave.isWeekendExempt && (
                     <View style={styles.weekendExemptTag}>
                       <Text style={styles.weekendExemptTagText}>
-                        🏖️ Weekend Exemption (Saturday PM – Monday AM • 0 Quota Days)
+                        🏖️ Weekend Pass (No leave quota used)
                       </Text>
                     </View>
                   )}
 
-                  {/* Duration & Sessions */}
-                  <View style={styles.datesRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.datesText}>
-                        {leave.startDate} {leave.startSession ? `(${leave.startSession})` : ''} ➔ {leave.endDate} {leave.returnSession ? `(${leave.returnSession})` : ''}
+                  {/* Clean Dedicated Date & Time Entry Box */}
+                  <View style={styles.entryTimingBox}>
+                    <View style={styles.entryTimingCol}>
+                      <Text style={styles.entryTimingLabelOut}>FROM (DEPARTURE)</Text>
+                      <Text style={styles.entryTimingDate}>{leave.startDate}</Text>
+                      <Text style={styles.entryTimingTime}>
+                        {leave.departureTime || (leave.startSession === 'Evening' ? '05:00 PM (Evening)' : '09:00 AM (Morning)')}
                       </Text>
-                      {leave.chargedDays !== undefined && (
-                        <Text style={styles.quotaChargedSubText}>
-                          Leave Quota Charged: {leave.chargedDays} Days {leave.startSession === 'Evening' ? '• Evening dep. excludes day 1' : ''}
+                      {leave.checkOutTime && (
+                        <Text style={styles.entryGateTime}>Exit Scan: {leave.checkOutTime}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.entryTimingDivider} />
+
+                    <View style={styles.entryTimingCol}>
+                      <Text style={styles.entryTimingLabelIn}>TO (RETURN)</Text>
+                      <Text style={styles.entryTimingDate}>{leave.endDate}</Text>
+                      <Text style={[styles.entryTimingTime, { color: '#DC2626' }]}>
+                        {leave.expectedReturnTime || (leave.returnSession === 'Evening' ? '06:00 PM (Evening)' : '08:30 AM (Morning)')}
+                      </Text>
+                      {leave.checkInTime ? (
+                        <Text style={[styles.entryGateTime, { color: '#059669' }]}>
+                          Return Scan: {leave.checkInTime}
+                        </Text>
+                      ) : (
+                        <Text style={styles.entryCurfewNotice}>
+                          {leave.totalDays} Days {leave.isGovtHoliday ? '• 0 Quota' : ''}
                         </Text>
                       )}
                     </View>
-                    <Text style={styles.daysText}>{leave.totalDays} Days</Text>
                   </View>
 
                   {leave.destination && (
@@ -578,8 +640,15 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   )}
                   <Text style={styles.reasonText}>Reason: {leave.reason}</Text>
 
-                  {/* APPROVED: GATE TOKEN & ACTIONS */}
-                  {leave.status === 'Approved' && (
+                  {/* Gate Return Completed / Closed State */}
+                  {leave.checkInTime ? (
+                    <View style={styles.closedHistoryEntryTag}>
+                      <CheckCircle2 size={12} color="#059669" />
+                      <Text style={styles.closedHistoryEntryText}>
+                        Returned on {leave.checkInTime} • Leave Completed
+                      </Text>
+                    </View>
+                  ) : leave.status === 'Approved' ? (
                     <View style={styles.tokenSection}>
                       <View style={styles.tokenBox}>
                         <View style={styles.tokenLeft}>
@@ -612,7 +681,7 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                           activeOpacity={0.85}
                         >
                           <QrCode size={13} color="#FFFFFF" />
-                          <Text style={styles.viewPassBtnText}>View Digital Outpass</Text>
+                          <Text style={styles.viewPassBtnText}>View Active Pass</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -625,7 +694,7 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         </TouchableOpacity>
                       </View>
                     </View>
-                  )}
+                  ) : null}
 
                   {/* Pending State */}
                   {leave.status === 'Pending' && (
@@ -871,16 +940,229 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             </View>
           </View>
         )}
+
+        {/* =======================================================
+            SECTION 4: CAMPUS GATE CHECK-IN & CHECK-OUT HISTORY
+           ======================================================= */}
+        {activeTab === 'gatelogs' && (
+          <View style={styles.cardsList}>
+            {/* Header Banner */}
+            <View style={styles.gateBannerCard}>
+              <View style={styles.gateBannerHeader}>
+                <View style={styles.gateBannerIconBadge}>
+                  <History size={20} color="#FFFFFF" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.gateBannerTitle}>Gate Check-In & Check-Out History</Text>
+                  <Text style={styles.gateBannerSub}>
+                    Security barcode logs tracking all campus exits and returns with gate station and guard details.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Real-time Presence Status Indicator */}
+              <View style={styles.gatePresenceRow}>
+                <View style={styles.gatePresenceLabelBox}>
+                  <Text style={styles.gatePresenceLabel}>CURRENT STATUS:</Text>
+                  <View
+                    style={[
+                      styles.gatePresenceBadge,
+                      myGateLogs.length > 0 && myGateLogs[0]?.action === 'Check Out'
+                        ? styles.gatePresenceOutside
+                        : styles.gatePresenceInside,
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.gatePresenceDot,
+                        myGateLogs.length > 0 && myGateLogs[0]?.action === 'Check Out'
+                          ? { backgroundColor: '#D97706' }
+                          : { backgroundColor: '#10B981' },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.gatePresenceText,
+                        myGateLogs.length > 0 && myGateLogs[0]?.action === 'Check Out'
+                          ? { color: '#B45309' }
+                          : { color: '#047857' },
+                      ]}
+                    >
+                      {myGateLogs.length > 0 && myGateLogs[0]?.action === 'Check Out'
+                        ? `Outside Campus (Exited at ${myGateLogs[0].timestamp})`
+                        : 'Inside Hostel Campus'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Movement Summary Stats */}
+              <View style={styles.gateStatsRow}>
+                <View style={styles.gateStatBox}>
+                  <Text style={styles.gateStatVal}>{myGateLogs.length}</Text>
+                  <Text style={styles.gateStatLbl}>Total Scans</Text>
+                </View>
+                <View style={styles.gateStatBox}>
+                  <Text style={[styles.gateStatVal, { color: '#D97706' }]}>
+                    {myGateLogs.filter((l) => l.action === 'Check Out').length}
+                  </Text>
+                  <Text style={styles.gateStatLbl}>Check Outs</Text>
+                </View>
+                <View style={styles.gateStatBox}>
+                  <Text style={[styles.gateStatVal, { color: '#059669' }]}>
+                    {myGateLogs.filter((l) => l.action === 'Check In').length}
+                  </Text>
+                  <Text style={styles.gateStatLbl}>Check Ins</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Filter Pills */}
+            <View style={styles.gateFilterRow}>
+              {(['all', 'Check Out', 'Check In'] as const).map((filter) => (
+                <TouchableOpacity
+                  key={filter}
+                  style={[styles.gateFilterPill, gateFilter === filter && styles.gateFilterPillActive]}
+                  onPress={() => setGateFilter(filter)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.gateFilterPillText,
+                      gateFilter === filter && styles.gateFilterPillTextActive,
+                    ]}
+                  >
+                    {filter === 'all'
+                      ? `All Events (${myGateLogs.length})`
+                      : filter === 'Check Out'
+                      ? `Check Outs (${myGateLogs.filter((l) => l.action === 'Check Out').length})`
+                      : `Check Ins (${myGateLogs.filter((l) => l.action === 'Check In').length})`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Movement Cards List */}
+            {myGateLogs.filter((l) => gateFilter === 'all' || l.action === gateFilter).length === 0 ? (
+              <View style={styles.emptyStateCard}>
+                <History size={36} color={colors.textMuted} />
+                <Text style={styles.emptyStateTitle}>No Gate Movement Logs</Text>
+                <Text style={styles.emptyStateSub}>
+                  Gate check-in and check-out logs appear automatically once security guards scan your barcode.
+                </Text>
+              </View>
+            ) : (
+              myGateLogs
+                .filter((l) => gateFilter === 'all' || l.action === gateFilter)
+                .map((log) => {
+                  const isCheckOut = log.action === 'Check Out';
+                  return (
+                    <View
+                      key={log.id}
+                      style={[
+                        styles.gateLogCard,
+                        isCheckOut ? styles.gateLogCardOut : styles.gateLogCardIn,
+                      ]}
+                    >
+                      {/* Top Action Header */}
+                      <View style={styles.gateLogCardHeader}>
+                        <View
+                          style={[
+                            styles.gateActionBadge,
+                            isCheckOut ? styles.gateActionBadgeOut : styles.gateActionBadgeIn,
+                          ]}
+                        >
+                          {isCheckOut ? (
+                            <ArrowUpRight size={13} color="#D97706" />
+                          ) : (
+                            <ArrowDownLeft size={13} color="#059669" />
+                          )}
+                          <Text
+                            style={[
+                              styles.gateActionBadgeText,
+                              isCheckOut ? { color: '#B45309' } : { color: '#047857' },
+                            ]}
+                          >
+                            {isCheckOut ? 'CHECK OUT • CAMPUS EXIT' : 'CHECK IN • CAMPUS RETURN'}
+                          </Text>
+                        </View>
+                        <View style={styles.gateTimeTag}>
+                          <Clock size={11} color={colors.textSecondary} />
+                          <Text style={styles.gateTimeTagText}>{log.timestamp}</Text>
+                        </View>
+                      </View>
+
+                      {/* Pass details */}
+                      <View style={styles.gateLogDetailsBlock}>
+                        <View style={styles.gateDetailItem}>
+                          <Text style={styles.gateDetailItemLabel}>Pass Type & USN:</Text>
+                          <Text style={styles.gateDetailItemVal}>
+                            {log.type} Pass • {log.usn} ({log.studentName})
+                          </Text>
+                        </View>
+
+                        <View style={styles.gateDetailItem}>
+                          <Text style={styles.gateDetailItemLabel}>Registration & Barcode:</Text>
+                          <Text style={styles.gateDetailBarcodeVal}>
+                            {log.registrationId} • {log.barcode}
+                          </Text>
+                        </View>
+
+                        <View style={styles.gateDetailItem}>
+                          <Text style={styles.gateDetailItemLabel}>Station & Security:</Text>
+                          <Text style={styles.gateDetailItemVal}>
+                            {log.station} • {log.guardName}
+                          </Text>
+                        </View>
+
+                        {log.destination && (
+                          <View style={styles.gateDetailItem}>
+                            <Text style={styles.gateDetailItemLabel}>Destination:</Text>
+                            <Text style={styles.gateDetailItemVal}>{log.destination}</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Security Verification Remarks */}
+                      {log.remarks && (
+                        <View style={styles.gateRemarksBox}>
+                          <Text style={styles.gateRemarksText}>
+                            <Text style={{ fontWeight: '700' }}>Security Note: </Text>
+                            {log.remarks}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Late Curfew Breach Alert */}
+                      {log.isLate && (
+                        <View style={styles.gateLateBreachAlert}>
+                          <ShieldAlert size={12} color="#DC2626" />
+                          <Text style={styles.gateLateBreachAlertText}>
+                            Late Entry Curfew Breach Logged • Forwarded to SWO Desk
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* Apply Leave Modal */}
       <ApplyLeaveModal
         visible={isApplyModalVisible}
         leavesCount={leavesTaken}
+        usn={profile?.usn || '1RV22CS089'}
         onClose={() => setIsApplyModalVisible(false)}
         onSubmitSuccess={() => loadData()}
         onApplyLeave={async (params) => {
-          return await StorageService.applyLeave(params);
+          const res = await StorageService.applyLeave(params);
+          if (res.leave.status === 'Approved' && res.leave.gateToken) {
+            setSelectedLeaveForPass(res.leave);
+          }
+          return res;
         }}
       />
 
@@ -914,6 +1196,7 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <DigitalOutpassModal
         visible={!!selectedOutingForPass}
         outing={selectedOutingForPass}
+        profile={profile}
         onClose={() => setSelectedOutingForPass(null)}
         onGateExit={async (id) => {
           await handleGateExit(id);
@@ -937,6 +1220,7 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <DigitalOutpassModal
         visible={!!selectedLeaveForPass}
         leave={selectedLeaveForPass}
+        profile={profile}
         onClose={() => setSelectedLeaveForPass(null)}
         onGateExit={async (id) => {
           await StorageService.markLeaveExited(id);
@@ -948,8 +1232,7 @@ export const LeaveScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           try {
             await StorageService.markLeaveReturned(id);
             await loadData();
-            const leaves = await StorageService.getMyLeaves();
-            setSelectedLeaveForPass(leaves.find((l) => l.id === id) || null);
+            setSelectedLeaveForPass(null);
           } catch (err: any) {
             Alert.alert('Gate Check-In Blocked', err.message || 'Failed to complete check-in.');
           }
@@ -1010,6 +1293,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 30,
+    ...Platform.select({
+      web: {
+        maxWidth: 1240,
+        width: '100%',
+        alignSelf: 'center',
+        paddingHorizontal: 28,
+        paddingTop: 20,
+      },
+    }),
   },
   summaryCard: {
     backgroundColor: colors.surfaceCard,
@@ -1079,14 +1371,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
   },
   tabToggleActive: {
     backgroundColor: colors.primarySubtle,
   },
   tabToggleText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: colors.textSecondary,
   },
   tabToggleTextActive: {
@@ -1145,6 +1437,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginVertical: 4,
+  },
+  cardStudentInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginVertical: 4,
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  cardAvatarPhoto: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  cardAvatarFallback: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardStudentName: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  cardStudentUsn: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primaryDark,
   },
   datesText: {
     fontSize: 12,
@@ -1581,6 +1907,23 @@ const styles = StyleSheet.create({
   quickReturnBtnTextLocked: {
     color: '#92400E',
   },
+  exitedGateTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  exitedGateTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#B45309',
+  },
+
   disciplinaryBlockBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1829,5 +2172,325 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: colors.text,
+  },
+  entryTimingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 10,
+    marginBottom: 8,
+  },
+  entryTimingCol: {
+    flex: 1,
+  },
+  entryTimingDivider: {
+    width: 1,
+    height: '80%',
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: 8,
+  },
+  entryTimingLabelOut: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#2563EB',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  entryTimingLabelIn: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#DC2626',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  entryTimingDate: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  entryTimingTime: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 1,
+  },
+  entryGateTime: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#059669',
+    marginTop: 2,
+  },
+  entryCurfewNotice: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#DC2626',
+    marginTop: 2,
+  },
+  closedHistoryEntryTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 4,
+  },
+  closedHistoryEntryText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  tabToggleRowWrapper: {
+    marginBottom: 12,
+  },
+  tabToggleRowScroll: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+  },
+  gateBannerCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#334155',
+    gap: 12,
+  },
+  gateBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  gateBannerIconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gateBannerTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#F8FAFC',
+  },
+  gateBannerSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  gatePresenceRow: {
+    backgroundColor: '#1E293B',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  gatePresenceLabelBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  gatePresenceLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+  },
+  gatePresenceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  gatePresenceInside: {
+    backgroundColor: '#ECFDF5',
+  },
+  gatePresenceOutside: {
+    backgroundColor: '#FEF3C7',
+  },
+  gatePresenceDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  gatePresenceText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  gateStatsRow: {
+    flexDirection: 'row',
+    backgroundColor: '#1E293B',
+    borderRadius: 10,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  gateStatBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  gateStatVal: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: colors.primaryLight,
+  },
+  gateStatLbl: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  gateFilterRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 4,
+  },
+  gateFilterPill: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  gateFilterPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  gateFilterPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  gateFilterPillTextActive: {
+    color: '#FFFFFF',
+  },
+  gateLogCard: {
+    backgroundColor: colors.surfaceCard,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    gap: 10,
+  },
+  gateLogCardOut: {
+    borderColor: '#FCD34D',
+    backgroundColor: '#FFFEF5',
+  },
+  gateLogCardIn: {
+    borderColor: '#A7F3D0',
+    backgroundColor: '#F9FEFB',
+  },
+  gateLogCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  gateActionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  gateActionBadgeOut: {
+    backgroundColor: '#FEF3C7',
+  },
+  gateActionBadgeIn: {
+    backgroundColor: '#D1FAE5',
+  },
+  gateActionBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  gateTimeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  gateTimeTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  gateLogDetailsBlock: {
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  gateDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    flexWrap: 'wrap',
+  },
+  gateDetailItemLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  gateDetailItemVal: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  gateDetailBarcodeVal: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.primary,
+    fontFamily: 'monospace',
+  },
+  gateRemarksBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 6,
+    padding: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+  },
+  gateRemarksText: {
+    fontSize: 11,
+    color: '#334155',
+    lineHeight: 15,
+  },
+  gateLateBreachAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  gateLateBreachAlertText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#B91C1C',
   },
 });

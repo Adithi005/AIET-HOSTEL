@@ -136,11 +136,16 @@ export const ApplyHolidayPassModal: React.FC<ApplyHolidayPassModalProps> = ({
 
     try {
       setIsSubmitting(true);
+      const startObj = new Date(startDate);
+      const endObj = new Date(endDate);
+      const diffMs = endObj.getTime() - startObj.getTime();
+      const diffDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1);
+
       const res = await onApplyHolidayHomepass({
         holidayName,
         startDate,
         endDate,
-        totalDays: 4,
+        totalDays: diffDays,
         destinationAddress: homeAddress.trim(),
         reason: homeReason.trim(),
       });
@@ -175,6 +180,15 @@ export const ApplyHolidayPassModal: React.FC<ApplyHolidayPassModalProps> = ({
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <X size={20} color={colors.textSecondary} />
             </TouchableOpacity>
+          </View>
+
+          {/* APPLICANT IDENTITY: ONLY USN IS DISPLAYED OR REVEALED */}
+          <View style={styles.applicantUsnStrip}>
+            <View style={styles.applicantUsnBadge}>
+              <Text style={styles.applicantUsnBadgeText}>APPLICANT USN</Text>
+            </View>
+            <Text style={styles.applicantUsnValue}>{profile?.usn || '1RV22CS089'}</Text>
+            <Text style={styles.applicantUsnPolicy}>(Only USN revealed on application)</Text>
           </View>
 
           {/* Section Selector Tabs */}
@@ -417,6 +431,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: colors.surface,
@@ -425,6 +440,9 @@ const styles = StyleSheet.create({
     maxHeight: '88%',
     minHeight: '60%',
     paddingBottom: 24,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -679,5 +697,42 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  applicantUsnStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    gap: 8,
+  },
+  applicantUsnBadge: {
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  applicantUsnBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  applicantUsnValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E1B4B',
+  },
+  applicantUsnPolicy: {
+    fontSize: 10,
+    color: '#6366F1',
+    fontStyle: 'italic',
+    flex: 1,
+    textAlign: 'right',
   },
 });

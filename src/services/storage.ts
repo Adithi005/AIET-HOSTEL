@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from './api';
 import {
   UserProfile,
   SemesterRecord,
@@ -18,6 +19,12 @@ import {
   MasterActivityItem,
   CheckInCooldownInfo,
   StudentNotification,
+  VehicleType,
+  VehicleDestination,
+  VehicleSlot,
+  VehicleBooking,
+  AoPetitionType,
+  AoStudentPetition,
 } from '../types';
 import { getLeaveEscalationInfo, buildApprovalSteps } from '../utils/escalation';
 import { calculateChargedDays, checkHolidayOverlap } from '../utils/holidays';
@@ -37,7 +44,328 @@ const STORAGE_KEYS = {
   HEALTH_LOGS: '@stayvya_health_logs',
   ADMIN_LEAVES: '@stayvya_admin_leaves',
   NOTIFICATIONS: '@stayvya_notifications',
+  VEHICLE_BOOKINGS: '@stayvya_vehicle_bookings',
+  VEHICLE_SLOTS: '@stayvya_vehicle_slots',
+  BLOCKED_STUDENTS: '@stayvya_blocked_students',
+  AO_PETITIONS: '@stayvya_ao_petitions',
 };
+
+// =========================================================
+// INITIAL AO STUDENT PETITIONS & SPECIAL APPLICATIONS
+// (Fees delay, mess bill reduction, study cert, marks card)
+// =========================================================
+export const INITIAL_AO_PETITIONS: AoStudentPetition[] = [
+  {
+    id: 'AO-PET-101',
+    usn: '1RV22CS089',
+    studentName: 'Adithya Shenoy',
+    roomNumber: 'B-304',
+    hostelBlock: 'Cauvery Block B-3',
+    type: 'Fees Delay Permission',
+    reason: 'Education loan disbursement pending from Canara Bank main branch. Requesting 15-day payment extension till Oct 15th.',
+    requestedDate: '2026-09-28',
+    expectedPaymentDate: '2026-10-15',
+    status: 'Pending AO Approval',
+  },
+  {
+    id: 'AO-PET-102',
+    usn: '1RV22CS089',
+    studentName: 'Adithya Shenoy',
+    roomNumber: 'B-304',
+    hostelBlock: 'Cauvery Block B-3',
+    type: 'Mess Bill Reduction',
+    reason: 'Participated in VTU Inter-Collegiate Athletics Meet and was away from campus for 8 consecutive days.',
+    requestedDate: '2026-09-25',
+    reductionDays: 8,
+    status: 'Pending AO Approval',
+  },
+  {
+    id: 'AO-PET-103',
+    usn: '1RV22CS089',
+    studentName: 'Adithya Shenoy',
+    roomNumber: 'B-304',
+    hostelBlock: 'Cauvery Block B-3',
+    type: 'Study Certificate',
+    reason: 'Required for State Post-Matric e-Pass Scholarship Renewal application portal.',
+    requestedDate: '2026-09-26',
+    purpose: 'State Scholarship Portal Verification',
+    targetSemester: 5,
+    status: 'Pending AO Approval',
+  },
+  {
+    id: 'AO-PET-104',
+    usn: '1RV22CS089',
+    studentName: 'Adithya Shenoy',
+    roomNumber: 'B-304',
+    hostelBlock: 'Cauvery Block B-3',
+    type: 'Marks Card / Grade Transcript',
+    reason: 'Official verified 4th Semester grade transcript copy required for off-campus summer technical internship background verification.',
+    requestedDate: '2026-09-27',
+    purpose: 'Internship Onboarding Verification',
+    targetSemester: 4,
+    status: 'Pending AO Approval',
+  },
+];
+
+// =========================================================
+// VEHICLE SCHEDULE SLOTS & SEED BOOKINGS (Vidyagiri & Health Center)
+// =========================================================
+export const INITIAL_VEHICLE_SLOTS: VehicleSlot[] = [
+  // Vidyagiri Campus Transit (Eeco, TT, Mini Bus, Bus)
+  {
+    id: 'SLOT-VID-1',
+    destination: 'Vidyagiri',
+    vehicleType: 'TT',
+    departureTime: '08:30 AM',
+    departureMinutesFromMidnight: 8 * 60 + 30,
+    vehiclePlate: 'KA-19-M-3912',
+    capacity: 14,
+    driverName: 'Ramesh Gowda',
+    driverContact: '+91 98451 23410',
+    pickupPoint: 'Hostel Gate 1 Porch',
+    notes: 'Morning Academic & Exam Shuttle to Vidyagiri',
+  },
+  {
+    id: 'SLOT-VID-2',
+    destination: 'Vidyagiri',
+    vehicleType: 'Eeco',
+    departureTime: '10:00 AM',
+    departureMinutesFromMidnight: 10 * 60,
+    vehiclePlate: 'KA-19-E-8401',
+    capacity: 7,
+    driverName: 'Shekar Poojary',
+    driverContact: '+91 98860 44219',
+    pickupPoint: 'Hostel Gate 1 Porch',
+    notes: 'Library & Department Special Shuttle',
+  },
+  {
+    id: 'SLOT-VID-3',
+    destination: 'Vidyagiri',
+    vehicleType: 'Mini Bus',
+    departureTime: '01:30 PM',
+    departureMinutesFromMidnight: 13 * 60 + 30,
+    vehiclePlate: 'KA-19-B-7102',
+    capacity: 26,
+    driverName: 'Venkatesh Rao',
+    driverContact: '+91 94481 99120',
+    pickupPoint: 'Hostel Main Circle',
+    notes: 'Afternoon Mass Transit to Vidyagiri Main Campus',
+  },
+  {
+    id: 'SLOT-VID-4',
+    destination: 'Vidyagiri',
+    vehicleType: 'Bus',
+    departureTime: '05:00 PM',
+    departureMinutesFromMidnight: 17 * 60,
+    vehiclePlate: 'KA-19-F-9944',
+    capacity: 45,
+    driverName: 'Anand Devadiga',
+    driverContact: '+91 97410 88231',
+    pickupPoint: 'Hostel Campus Ground Gate',
+    notes: 'Evening Return & Campus Transfer Bus',
+  },
+
+  // Health Center / Clinic Transit (Students under Medical Care)
+  {
+    id: 'SLOT-HLT-1',
+    destination: 'Health Center',
+    vehicleType: 'Eeco',
+    departureTime: '09:15 AM',
+    departureMinutesFromMidnight: 9 * 60 + 15,
+    vehiclePlate: 'KA-19-E-5511',
+    capacity: 7,
+    driverName: 'Santhosh Kulal',
+    driverContact: '+91 99002 11982',
+    pickupPoint: 'Hostel Health Room / Sick Bay Gate',
+    notes: 'Morning Sick Bay & Physician OP Clinic Shuttle',
+  },
+  {
+    id: 'SLOT-HLT-2',
+    destination: 'Health Center',
+    vehicleType: 'TT',
+    departureTime: '11:45 AM',
+    departureMinutesFromMidnight: 11 * 60 + 45,
+    vehiclePlate: 'KA-19-M-6029',
+    capacity: 14,
+    driverName: 'Mohan Shetty',
+    driverContact: '+91 98442 33190',
+    pickupPoint: 'Hostel Health Room / Sick Bay Gate',
+    notes: 'Midday Medical Review & Diagnostic Lab Visit',
+  },
+  {
+    id: 'SLOT-HLT-3',
+    destination: 'Health Center',
+    vehicleType: 'Eeco',
+    departureTime: '03:15 PM',
+    departureMinutesFromMidnight: 15 * 60 + 15,
+    vehiclePlate: 'KA-19-E-5511',
+    capacity: 7,
+    driverName: 'Santhosh Kulal',
+    driverContact: '+91 99002 11982',
+    pickupPoint: 'Hostel Health Room / Sick Bay Gate',
+    notes: 'Afternoon Doctor Follow-up & Pharmacy Transit',
+  },
+  {
+    id: 'SLOT-HLT-4',
+    destination: 'Health Center',
+    vehicleType: 'Mini Bus',
+    departureTime: '06:30 PM',
+    departureMinutesFromMidnight: 18 * 60 + 30,
+    vehiclePlate: 'KA-19-B-8090',
+    capacity: 26,
+    driverName: 'Prashanth Nayak',
+    driverContact: '+91 94811 55672',
+    pickupPoint: 'Hostel Care Porch',
+    notes: 'Evening Health Care Group Return Shuttle',
+  },
+];
+
+export const INITIAL_VEHICLE_BOOKINGS: VehicleBooking[] = [
+  // Vidyagiri bookings (Students under hostel care)
+  {
+    id: 'VB-101',
+    bookingToken: 'VB-VID-8241',
+    usn: '4AL22CS014',
+    studentName: 'Chandan Kumar',
+    roomNumber: 'A-201',
+    contactNumber: '+91 98450 11223',
+    destination: 'Vidyagiri',
+    vehicleType: 'TT',
+    departureTime: '08:30 AM',
+    departureDate: new Date().toISOString().split('T')[0],
+    pickupPoint: 'Hostel Gate 1 Porch',
+    driverName: 'Ramesh Gowda',
+    driverContact: '+91 98451 23410',
+    vehiclePlate: 'KA-19-M-3912',
+    seatNumber: 1,
+    reason: 'Main Library Reference & Project Submission',
+    status: 'Confirmed',
+    bookedAt: 'Today 07:15 AM',
+  },
+  {
+    id: 'VB-102',
+    bookingToken: 'VB-VID-8242',
+    usn: '4AL22IS028',
+    studentName: 'Sneha Hegde',
+    roomNumber: 'B-108',
+    contactNumber: '+91 97410 33445',
+    destination: 'Vidyagiri',
+    vehicleType: 'TT',
+    departureTime: '08:30 AM',
+    departureDate: new Date().toISOString().split('T')[0],
+    pickupPoint: 'Hostel Gate 1 Porch',
+    driverName: 'Ramesh Gowda',
+    driverContact: '+91 98451 23410',
+    vehiclePlate: 'KA-19-M-3912',
+    seatNumber: 2,
+    reason: 'Campus Placement Drive & Interview',
+    status: 'Confirmed',
+    bookedAt: 'Today 07:22 AM',
+  },
+  {
+    id: 'VB-103',
+    bookingToken: 'VB-VID-8243',
+    usn: '4AL22EC039',
+    studentName: 'Rahul Nayak',
+    roomNumber: 'A-315',
+    contactNumber: '+91 99002 44556',
+    destination: 'Vidyagiri',
+    vehicleType: 'TT',
+    departureTime: '08:30 AM',
+    departureDate: new Date().toISOString().split('T')[0],
+    pickupPoint: 'Hostel Gate 1 Porch',
+    driverName: 'Ramesh Gowda',
+    driverContact: '+91 98451 23410',
+    vehiclePlate: 'KA-19-M-3912',
+    seatNumber: 3,
+    reason: 'Vidyagiri Electronics Lab Workshop',
+    status: 'Confirmed',
+    bookedAt: 'Today 07:35 AM',
+  },
+  {
+    id: 'VB-104',
+    bookingToken: 'VB-VID-8301',
+    usn: '4AL22ME012',
+    studentName: 'Karthik Prabhu',
+    roomNumber: 'C-104',
+    contactNumber: '+91 98440 55667',
+    destination: 'Vidyagiri',
+    vehicleType: 'Mini Bus',
+    departureTime: '01:30 PM',
+    departureDate: new Date().toISOString().split('T')[0],
+    pickupPoint: 'Hostel Main Circle',
+    driverName: 'Venkatesh Rao',
+    driverContact: '+91 94481 99120',
+    vehiclePlate: 'KA-19-B-7102',
+    seatNumber: 5,
+    reason: 'Sports Complex Training & VTU Athletic Meet',
+    status: 'Confirmed',
+    bookedAt: 'Today 10:10 AM',
+  },
+  // Health Center bookings (Students under hostel medical care)
+  {
+    id: 'VB-201',
+    bookingToken: 'VB-HLT-9101',
+    usn: '4AL22CS064',
+    studentName: 'Priya Dsouza',
+    roomNumber: 'B-214',
+    contactNumber: '+91 98451 77889',
+    destination: 'Health Center',
+    vehicleType: 'Eeco',
+    departureTime: '09:15 AM',
+    departureDate: new Date().toISOString().split('T')[0],
+    pickupPoint: 'Hostel Health Room / Sick Bay Gate',
+    driverName: 'Santhosh Kulal',
+    driverContact: '+91 99002 11982',
+    vehiclePlate: 'KA-19-E-5511',
+    seatNumber: 1,
+    reason: 'High Fever & Physician Consultation',
+    status: 'Confirmed',
+    bookedAt: 'Today 08:10 AM',
+    isHealthCareEmergency: true,
+  },
+  {
+    id: 'VB-202',
+    bookingToken: 'VB-HLT-9102',
+    usn: '4AL22CV019',
+    studentName: 'Manoj Kumar',
+    roomNumber: 'C-302',
+    contactNumber: '+91 99881 22334',
+    destination: 'Health Center',
+    vehicleType: 'Eeco',
+    departureTime: '09:15 AM',
+    departureDate: new Date().toISOString().split('T')[0],
+    pickupPoint: 'Hostel Health Room / Sick Bay Gate',
+    driverName: 'Santhosh Kulal',
+    driverContact: '+91 99002 11982',
+    vehiclePlate: 'KA-19-E-5511',
+    seatNumber: 2,
+    reason: 'Sprained Ankle & X-Ray checkup',
+    status: 'Confirmed',
+    bookedAt: 'Today 08:25 AM',
+    isHealthCareEmergency: true,
+  },
+  {
+    id: 'VB-203',
+    bookingToken: 'VB-HLT-9110',
+    usn: '4AL22AI031',
+    studentName: 'Ananya Sharma',
+    roomNumber: 'B-405',
+    contactNumber: '+91 97400 88990',
+    destination: 'Health Center',
+    vehicleType: 'TT',
+    departureTime: '11:45 AM',
+    departureDate: new Date().toISOString().split('T')[0],
+    pickupPoint: 'Hostel Health Room / Sick Bay Gate',
+    driverName: 'Mohan Shetty',
+    driverContact: '+91 98442 33190',
+    vehiclePlate: 'KA-19-M-6029',
+    seatNumber: 1,
+    reason: 'Allergic Reaction & Antihistamine Prescription',
+    status: 'Confirmed',
+    bookedAt: 'Today 09:40 AM',
+  },
+];
 
 // Seed 4-Year Academic History (Sem 1 through Sem 8)
 export const INITIAL_4YEAR_ACADEMICS: SemesterRecord[] = [
@@ -293,25 +621,25 @@ export const INITIAL_OUTINGS: OutingApplication[] = [
     hostelBlock: 'Cauvery Block B-3',
     outingType: 'Evening Dinner',
     outDate: '2024-10-25',
-    outTime: '06:00 PM',
-    expectedInTime: '08:45 PM',
-    checkOutTime: '06:05 PM',
+    outTime: '09:00 AM',
+    expectedInTime: '04:00 PM',
+    checkOutTime: '09:30 AM',
     checkOutGate: 'Campus Main Gate 1',
     checkOutGuard: 'Security Guard Ramu',
     destination: 'Koramangala 5th Block',
     purpose: 'Team project dinner and technical discussion',
     contactNumber: '+91 98765 43210',
     emergencyContact: '+91 98765 01234',
-    appliedAt: '2024-10-25 17:40',
+    appliedAt: '2024-10-25 08:40',
     status: 'Exited Gate',
     outpassToken: 'OP-59821',
     qrCodeValue: 'AIETNEST-OP-59821-1RV22CS089',
-    gateSecurityRemark: 'Gate exit recorded at 6:05 PM by Guard Ramu. Must return before 8:45 PM curfew.',
+    gateSecurityRemark: 'Gate exit recorded at 09:30 AM by Guard Ramu. Must return before 04:00 PM curfew.',
     movementHistory: [
       {
         id: 'EVT-OUT-3013-1',
         action: 'Check Out',
-        timestamp: '2024-10-25 06:05 PM',
+        timestamp: '2024-10-25 09:30 AM',
         gate: 'Campus Main Gate 1',
         guardName: 'Security Guard Ramu',
         remarks: 'Digital Outpass barcode scanned. Exited campus.',
@@ -330,20 +658,20 @@ export const INITIAL_OUTINGS: OutingApplication[] = [
     hostelBlock: 'Cauvery Block B-3',
     outingType: 'Local City Outing',
     outDate: '2024-10-24',
-    outTime: '04:30 PM',
-    expectedInTime: '08:30 PM',
-    checkOutTime: '04:30 PM',
+    outTime: '09:00 AM',
+    expectedInTime: '04:00 PM',
+    checkOutTime: '09:15 AM',
     checkOutGate: 'Campus Main Gate 1',
     checkOutGuard: 'Security Guard Ramu',
-    checkInTime: '08:15 PM',
+    checkInTime: '03:45 PM',
     checkInGate: 'Campus Main Gate 1',
     checkInGuard: 'Security Guard Ramu',
-    actualInTime: '08:15 PM',
+    actualInTime: '03:45 PM',
     destination: 'Jayanagar 4th Block Shopping Complex',
     purpose: 'Purchased academic textbooks and stationery supplies',
     contactNumber: '+91 98765 43210',
     emergencyContact: '+91 98765 01234',
-    appliedAt: '2024-10-24 16:00',
+    appliedAt: '2024-10-24 08:30',
     status: 'Returned & Closed',
     outpassToken: 'OP-44120',
     qrCodeValue: 'AIETNEST-OP-44120-1RV22CS089',
@@ -374,6 +702,44 @@ export const INITIAL_OUTINGS: OutingApplication[] = [
 ];
 
 export const INITIAL_GATE_LOGS: GateLogEntry[] = [
+  {
+    id: 'GLOG-505',
+    registrationId: 'REG-OUT-3019',
+    barcode: '*REG-OUT-3019*',
+    usn: '1RV22EC045',
+    studentName: 'Rohan Mehta',
+    roomNumber: 'A-102',
+    type: 'Outing',
+    destination: 'City Center Mall',
+    action: 'Check In',
+    timestamp: '2026-09-28 17:15',
+    station: 'Campus Main Gate 1',
+    guardName: 'Security Guard Ramu',
+    isLate: true,
+    isLateReturn: true,
+    curfewTime: '04:30 PM',
+    status: 'Late Return (Curfew Breached)',
+    remarks: 'Curfew Breached: Returned at 05:15 PM (+45m after 04:30 PM cutoff). Outing locked.',
+  },
+  {
+    id: 'GLOG-504',
+    registrationId: 'REG-OUT-3018',
+    barcode: '*REG-OUT-3018*',
+    usn: '1RV21ME078',
+    studentName: 'Vignesh Rao',
+    roomNumber: 'B-110',
+    type: 'Outing',
+    destination: 'Town Market & Book Depot',
+    action: 'Check In',
+    timestamp: '2026-09-27 17:40',
+    station: 'Campus Main Gate 1',
+    guardName: 'Security Guard Ramu',
+    isLate: true,
+    isLateReturn: true,
+    curfewTime: '04:30 PM',
+    status: 'Late Return (Curfew Breached)',
+    remarks: 'Curfew Breached: Returned at 05:40 PM (+70m after 04:30 PM cutoff). Outing locked.',
+  },
   {
     id: 'GLOG-503',
     registrationId: 'REG-OUT-3012',
@@ -516,6 +882,45 @@ export const INITIAL_GRIEVANCES: GrievanceTicket[] = [
     status: 'Submitted',
     createdAt: '2024-10-18 07:15',
     adminRemark: 'Sanitation lead notified.',
+  },
+];
+
+export const INITIAL_MESS_RATINGS: MessRating[] = [
+  {
+    id: 'MESS-101',
+    usn: '1RV22CS089',
+    studentName: 'Aditya Sharma',
+    roomNumber: 'B-304',
+    mealType: 'Lunch',
+    rating: 2,
+    feedback: 'Paneer curry was undercooked and chapati served cold. Quality needs urgent check.',
+    photoUri: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+    date: '2026-09-29',
+    createdAt: '2026-09-29 13:45',
+  },
+  {
+    id: 'MESS-102',
+    usn: '1RV22EC032',
+    studentName: 'Pooja Hegde',
+    roomNumber: 'C-112',
+    mealType: 'Breakfast',
+    rating: 5,
+    feedback: 'Idli and Sambar were hot, fresh, and delicious today! Chutney was very good.',
+    photoUri: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80',
+    date: '2026-09-29',
+    createdAt: '2026-09-29 08:30',
+  },
+  {
+    id: 'MESS-103',
+    usn: '1RV22ME045',
+    studentName: 'Karthik Rao',
+    roomNumber: 'A-210',
+    mealType: 'Dinner',
+    rating: 3,
+    feedback: 'Dal tadka lacked salt and rice was slightly overboiled. Vegetables were good.',
+    photoUri: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&auto=format&fit=crop&q=80',
+    date: '2026-09-28',
+    createdAt: '2026-09-28 20:15',
   },
 ];
 
@@ -950,6 +1355,11 @@ export const StorageService = {
 
   async getProfile(): Promise<UserProfile> {
     try {
+      const serverProfile = await api.getProfile();
+      if (serverProfile && serverProfile.usn) {
+        await AsyncStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(serverProfile));
+        return serverProfile;
+      }
       const data = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE);
       if (data) return JSON.parse(data);
       await AsyncStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(INITIAL_USER_PROFILE));
@@ -961,10 +1371,16 @@ export const StorageService = {
 
   async updateProfile(profile: UserProfile): Promise<void> {
     await AsyncStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
+    api.updateProfile(profile).catch(() => {});
   },
 
   async getAcademics(): Promise<SemesterRecord[]> {
     try {
+      const serverAcademics = await api.getAcademics().catch(() => null);
+      if (serverAcademics && Array.isArray(serverAcademics) && serverAcademics.length > 0) {
+        await AsyncStorage.setItem(STORAGE_KEYS.ACADEMICS, JSON.stringify(serverAcademics));
+        return serverAcademics;
+      }
       const data = await AsyncStorage.getItem(STORAGE_KEYS.ACADEMICS);
       if (data) return JSON.parse(data);
       await AsyncStorage.setItem(STORAGE_KEYS.ACADEMICS, JSON.stringify(INITIAL_4YEAR_ACADEMICS));
@@ -977,6 +1393,11 @@ export const StorageService = {
   async getMyLeaves(): Promise<LeaveApplication[]> {
     try {
       const profile = await this.getProfile();
+      const serverLeaves = await api.getLeaves(profile.usn);
+      if (serverLeaves && Array.isArray(serverLeaves) && serverLeaves.length > 0) {
+        await AsyncStorage.setItem(STORAGE_KEYS.LEAVES, JSON.stringify(serverLeaves));
+        return serverLeaves;
+      }
       const data = await AsyncStorage.getItem(STORAGE_KEYS.LEAVES);
       const all: LeaveApplication[] = data ? JSON.parse(data) : INITIAL_MY_LEAVES;
       if (!data) {
@@ -1022,30 +1443,33 @@ export const StorageService = {
       isGovtHoliday: params.isGovtHoliday,
     });
 
+    const isGovtHoliday = Boolean(holidayCalc.isExempt || params.isGovtHoliday);
+    const holidayName = holidayCalc.holidayName || params.holidayName || (isGovtHoliday ? 'Govt Holiday Exemption' : undefined);
+
     // 3. Session-based quota & Saturday PM to Monday AM weekend exemption
     const sessionCalc = calculateLeaveSessionDays({
       startDate: params.startDate,
       startSession,
       endDate: params.endDate,
       returnSession,
-      isGovtHoliday: holidayCalc.isExempt,
+      isGovtHoliday,
     });
 
-    const isGovtHoliday = holidayCalc.isExempt;
-    const holidayName = holidayCalc.holidayName || params.holidayName;
     const isWeekendExempt = sessionCalc.isWeekendExempt;
-    const chargedDays = sessionCalc.chargedDays;
+    const chargedDays = isGovtHoliday ? 0 : sessionCalc.chargedDays;
 
-    // 4. Going Home (Home Visit) Auto-Approval & Instant Outpass:
+    // 4. Going Home (Home Visit) or Govt Holiday Auto-Approval & Instant Outpass:
     const isGoingHome = params.leaveType === 'Home Visit';
+    const isAutoApproved = isGoingHome || isGovtHoliday;
     const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
-    const autoGateToken = isGoingHome ? `TK-${Math.floor(10000 + Math.random() * 90000)}` : undefined;
+    const autoGateToken = isAutoApproved
+      ? (isGovtHoliday ? `TK-HP-${Math.floor(10000 + Math.random() * 90000)}` : `TK-${Math.floor(10000 + Math.random() * 90000)}`)
+      : undefined;
 
     // Approver determination:
-    // Weekend Exemption strictly requires AO permission!
     const requiredApprover = isWeekendExempt
       ? 'AO'
-      : isGoingHome
+      : isAutoApproved
       ? 'Warden'
       : escalation.requiredApprover;
 
@@ -1058,14 +1482,18 @@ export const StorageService = {
             remarks: 'Saturday PM to Monday AM Weekend Exemption requested (0 Quota Days). Pending AO sanction.',
           },
         ]
-      : isGoingHome
+      : isAutoApproved
       ? [
           {
             role: 'Warden' as const,
             status: 'Approved' as const,
             timestamp: now,
-            approverName: 'Auto-Sanction (Warden Desk)',
-            remarks: 'Home Visit auto-approved with verified parent intimation. Digital Outpass active.',
+            approverName: isGovtHoliday
+              ? 'Auto-Sanctioned System (Govt Holiday Exemption)'
+              : 'Auto-Sanction (Warden Desk)',
+            remarks: isGovtHoliday
+              ? `Pre-authorized institutional exemption for ${holidayName}. 0 days deducted from personal leave quota.`
+              : 'Home Visit auto-approved with verified parent intimation. Digital Outpass active.',
           },
         ]
       : steps;
@@ -1094,15 +1522,15 @@ export const StorageService = {
       isWeekendExempt,
       reason: params.reason,
       appliedDate: new Date().toISOString().split('T')[0],
-      status: isGoingHome ? 'Approved' : 'Pending',
+      status: isAutoApproved ? 'Approved' : 'Pending',
       cumulativeLeaveCountAtApplication: profile.leavesCount,
       requiredApprover,
       approvalSteps,
       medicalDocumentUri: params.medicalDocumentUri,
       medicalDocumentName: params.medicalDocumentName,
       gateToken: autoGateToken,
-      tokenGeneratedAt: isGoingHome ? now : undefined,
-      isAutoApproved: isGoingHome,
+      tokenGeneratedAt: isAutoApproved ? now : undefined,
+      isAutoApproved,
       isGovtHoliday,
       holidayName,
       chargedDays,
@@ -1118,6 +1546,9 @@ export const StorageService = {
     await AsyncStorage.setItem(STORAGE_KEYS.LEAVES, JSON.stringify(updatedLeaves));
     await AsyncStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(updatedProfile));
 
+    // Sync with backend API
+    api.applyLeave(newLeave).catch(() => {});
+
     // Also add to public outpass board (strictly USN only!)
     const publicRoster = await this.getPublicOutpass();
     const newPublicItem = {
@@ -1128,7 +1559,7 @@ export const StorageService = {
       startDate: params.startDate,
       endDate: params.endDate,
       days: params.totalDays,
-      status: isGoingHome ? ('Approved' as const) : ('Under Review' as const),
+      status: isAutoApproved ? ('Approved' as const) : ('Under Review' as const),
     };
     await AsyncStorage.setItem(STORAGE_KEYS.PUBLIC_OUTPASS, JSON.stringify([newPublicItem, ...publicRoster]));
 
@@ -1166,11 +1597,75 @@ export const StorageService = {
       ...ticket,
       status: 'Submitted',
       createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      adminRemark: 'Ticket submitted. Assigned to hostel maintenance desk.',
+      adminRemark: 'Ticket submitted with live photo verification. Assigned to hostel maintenance desk.',
     };
+
+    try {
+      await api.submitGrievance(newTicket);
+    } catch {
+      // Fallback
+    }
+
     const updated = [newTicket, ...existing];
     await AsyncStorage.setItem(STORAGE_KEYS.GRIEVANCES, JSON.stringify(updated));
     return newTicket;
+  },
+
+  async getMessRatings(): Promise<MessRating[]> {
+    try {
+      const serverRatings = await api.getMessRatings();
+      if (serverRatings && serverRatings.length > 0) {
+        await AsyncStorage.setItem(STORAGE_KEYS.MESS_RATINGS, JSON.stringify(serverRatings));
+        return serverRatings;
+      }
+    } catch {
+      // Fallback
+    }
+
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.MESS_RATINGS);
+      if (data) return JSON.parse(data);
+      await AsyncStorage.setItem(STORAGE_KEYS.MESS_RATINGS, JSON.stringify(INITIAL_MESS_RATINGS));
+      return INITIAL_MESS_RATINGS;
+    } catch {
+      return INITIAL_MESS_RATINGS;
+    }
+  },
+
+  async submitMessRating(params: {
+    mealType: string;
+    rating: number;
+    feedback?: string;
+    photoUri?: string;
+  }): Promise<MessRating> {
+    const profile = await this.getProfile();
+    const existing = await this.getMessRatings();
+    const newRating: MessRating = {
+      id: `MESS-${Date.now()}`,
+      usn: profile.usn,
+      studentName: profile.name,
+      roomNumber: profile.roomNumber,
+      mealType: params.mealType,
+      rating: params.rating,
+      feedback: params.feedback || '',
+      photoUri: params.photoUri,
+      date: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+    };
+
+    try {
+      await api.submitMessRating(newRating);
+    } catch {
+      // Fallback
+    }
+
+    const updated = [newRating, ...existing];
+    await AsyncStorage.setItem(STORAGE_KEYS.MESS_RATINGS, JSON.stringify(updated));
+    return newRating;
+  },
+
+  async getAllMessRatingsAdmin(): Promise<MessRating[]> {
+    return await this.getMessRatings();
   },
 
   async getDocuments(): Promise<StudentDocument[]> {
@@ -1292,6 +1787,11 @@ export const StorageService = {
 
   async getAllLeavesAdmin(): Promise<LeaveApplication[]> {
     try {
+      const serverLeaves = await api.getAdminLeaves().catch(() => null);
+      if (serverLeaves && Array.isArray(serverLeaves) && serverLeaves.length > 0) {
+        await AsyncStorage.setItem(STORAGE_KEYS.ADMIN_LEAVES, JSON.stringify(serverLeaves));
+        return serverLeaves;
+      }
       const stored = await AsyncStorage.getItem(STORAGE_KEYS.ADMIN_LEAVES);
       let adminLeaves: LeaveApplication[] = stored ? JSON.parse(stored) : null;
       const myLeaves = await this.getMyLeaves();
@@ -1356,6 +1856,11 @@ export const StorageService = {
       }
 
       if (params.action === 'Reject') {
+        api.rejectLeaveAdmin(params.leaveId, {
+          approverRole: params.role,
+          approverName: params.approverName,
+          remarks: params.remarks,
+        }).catch(() => {});
         return {
           ...l,
           status: 'Rejected' as const,
@@ -1372,6 +1877,14 @@ export const StorageService = {
 
       const token = l.gateToken || `TK-${Math.floor(10000 + Math.random() * 90000)}`;
       const fallbackRegId = l.registrationId || `REG-LV-${Math.floor(10000 + Math.random() * 90000)}`;
+
+      if (isApproved) {
+        api.approveLeaveAdmin(params.leaveId, {
+          approverRole: params.role,
+          approverName: params.approverName,
+          remarks: params.remarks,
+        }).catch(() => {});
+      }
 
       return {
         ...l,
@@ -1436,6 +1949,11 @@ export const StorageService = {
 
   async getHealthLogs(): Promise<HealthRoomLog[]> {
     try {
+      const serverLogs = await api.getHealthLogs().catch(() => null);
+      if (serverLogs && Array.isArray(serverLogs) && serverLogs.length > 0) {
+        await AsyncStorage.setItem(STORAGE_KEYS.HEALTH_LOGS, JSON.stringify(serverLogs));
+        return serverLogs;
+      }
       const data = await AsyncStorage.getItem(STORAGE_KEYS.HEALTH_LOGS);
       if (data) return JSON.parse(data);
       await AsyncStorage.setItem(STORAGE_KEYS.HEALTH_LOGS, JSON.stringify(INITIAL_HEALTH_LOGS));
@@ -1453,6 +1971,7 @@ export const StorageService = {
     };
     const updated = [newLog, ...logs];
     await AsyncStorage.setItem(STORAGE_KEYS.HEALTH_LOGS, JSON.stringify(updated));
+    api.addHealthLog(newLog).catch(() => {});
     return newLog;
   },
 
@@ -1473,6 +1992,7 @@ export const StorageService = {
       return item;
     });
     await AsyncStorage.setItem(STORAGE_KEYS.HEALTH_LOGS, JSON.stringify(updated));
+    api.dischargeHealthLog(id, { checkOutTime: nowTime, remarks }).catch(() => {});
     return target;
   },
 
@@ -1540,6 +2060,7 @@ export const StorageService = {
     });
 
     await AsyncStorage.setItem(STORAGE_KEYS.ACADEMICS, JSON.stringify(updated));
+    api.updateAcademics(params).catch(() => {});
     return updated;
   },
 
@@ -1675,6 +2196,15 @@ export const StorageService = {
     isOutingBlocked?: boolean;
     outingBlockReason?: string;
   }>> {
+    try {
+      const serverStudents = await api.getStudents().catch(() => null);
+      if (serverStudents && Array.isArray(serverStudents) && serverStudents.length > 0) {
+        return serverStudents;
+      }
+    } catch {
+      // fallback
+    }
+
     const profile = await this.getProfile();
     return [
       {
@@ -1792,6 +2322,11 @@ export const StorageService = {
   // ==========================================
   async getOutings(): Promise<OutingApplication[]> {
     try {
+      const remote = await api.getOutings();
+      if (remote && Array.isArray(remote) && remote.length > 0) {
+        await AsyncStorage.setItem(STORAGE_KEYS.OUTINGS, JSON.stringify(remote));
+        return remote;
+      }
       const data = await AsyncStorage.getItem(STORAGE_KEYS.OUTINGS);
       if (data) return JSON.parse(data);
       await AsyncStorage.setItem(STORAGE_KEYS.OUTINGS, JSON.stringify(INITIAL_OUTINGS));
@@ -1881,6 +2416,7 @@ export const StorageService = {
 
     const updated = [newOuting, ...existing];
     await AsyncStorage.setItem(STORAGE_KEYS.OUTINGS, JSON.stringify(updated));
+    await api.applyOuting(newOuting).catch(() => {});
     return newOuting;
   },
 
@@ -1961,6 +2497,20 @@ export const StorageService = {
     const updated = [newLeave, ...existingLeaves];
     await AsyncStorage.setItem(STORAGE_KEYS.LEAVES, JSON.stringify(updated));
 
+    // Also add to public outpass board (strictly USN only!)
+    const publicRoster = await this.getPublicOutpass();
+    const newPublicItem = {
+      id: `OUT-${Math.floor(100 + Math.random() * 900)}`,
+      usn: profile.usn,
+      hostelBlock: profile.hostelBlock,
+      leaveType: 'Home Visit',
+      startDate: params.startDate,
+      endDate: params.endDate,
+      days: params.totalDays,
+      status: 'Approved' as const,
+    };
+    await AsyncStorage.setItem(STORAGE_KEYS.PUBLIC_OUTPASS, JSON.stringify([newPublicItem, ...publicRoster]));
+
     // Send notification to student
     await this.addNotification({
       usn: profile.usn,
@@ -2010,6 +2560,7 @@ export const StorageService = {
     await AsyncStorage.setItem(STORAGE_KEYS.OUTINGS, JSON.stringify(updated));
     if (updatedTarget) {
       const tgt = updatedTarget as OutingApplication;
+      await api.markOutingExit(outingId, gate, guard).catch(() => {});
       await this.recordGateLog({
         registrationId: tgt.registrationId || `REG-OUT-${tgt.id}`,
         barcode: tgt.barcode || `*REG-OUT-${tgt.id}*`,
@@ -2105,6 +2656,7 @@ export const StorageService = {
           ? `Grace period return (${returnTime}). Curfew was ${curfewEval.curfewTime}.`
           : 'Barcode verified at scanner. Returned safely before curfew.',
       });
+      await api.markOutingReturn(outingId, gate, guard).catch(() => {});
 
       // Handle Late Entry Disciplinary Action & Notifications
       if (isLate) {
@@ -2247,6 +2799,7 @@ export const StorageService = {
         guardName: guard,
         remarks: 'Return barcode scanned. Hosteller checked in from leave.',
       });
+      await api.markLeaveReturn(leaveId, gate, guard).catch(() => {});
     }
     return target;
   },
@@ -2256,12 +2809,31 @@ export const StorageService = {
   // ==========================================
   async getGateLogs(): Promise<GateLogEntry[]> {
     try {
+      const serverLogs = await api.getGateLogs().catch(() => null);
+      if (serverLogs && Array.isArray(serverLogs) && serverLogs.length > 0) {
+        await AsyncStorage.setItem(STORAGE_KEYS.GATE_LOGS, JSON.stringify(serverLogs));
+        return serverLogs;
+      }
       const data = await AsyncStorage.getItem(STORAGE_KEYS.GATE_LOGS);
       if (data) return JSON.parse(data);
       await AsyncStorage.setItem(STORAGE_KEYS.GATE_LOGS, JSON.stringify(INITIAL_GATE_LOGS));
       return INITIAL_GATE_LOGS;
     } catch {
       return INITIAL_GATE_LOGS;
+    }
+  },
+
+  async getMyGateLogs(usn?: string): Promise<GateLogEntry[]> {
+    try {
+      let targetUsn = usn?.trim().toUpperCase();
+      if (!targetUsn) {
+        const profile = await this.getProfile();
+        targetUsn = profile.usn.trim().toUpperCase();
+      }
+      const logs = await this.getGateLogs();
+      return logs.filter((l) => l.usn.trim().toUpperCase() === targetUsn);
+    } catch {
+      return [];
     }
   },
 
@@ -2274,6 +2846,7 @@ export const StorageService = {
     };
     const updated = [newLog, ...logs];
     await AsyncStorage.setItem(STORAGE_KEYS.GATE_LOGS, JSON.stringify(updated));
+    await api.recordGateLog(newLog).catch(() => {});
     return newLog;
   },
 
@@ -2768,24 +3341,96 @@ export const StorageService = {
     await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(filtered));
   },
 
+  async swoLockOuting(
+    usn: string,
+    reason: string = 'Curfew breach / Late check-in disciplinary suspension by SWO',
+    swoOfficerName: string = 'Dr. Suresh Babu (SWO)'
+  ): Promise<{ success: boolean; message: string }> {
+    const cleanUsn = usn.trim().toUpperCase();
+    const profile = await this.getProfile();
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
+
+    if (profile.usn.toUpperCase() === cleanUsn) {
+      profile.isOutingBlocked = true;
+      profile.outingBlockReason = reason;
+      profile.outingBlockedAt = nowStr;
+      await this.updateProfile(profile);
+    }
+
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.BLOCKED_STUDENTS);
+      let list = stored ? JSON.parse(stored) : [];
+      const exists = list.find((b: any) => b.usn.toUpperCase() === cleanUsn);
+      if (!exists) {
+        const allStudents = await this.getAllStudents();
+        const std = allStudents.find((s) => s.usn.toUpperCase() === cleanUsn) || {
+          name: cleanUsn === profile.usn.toUpperCase() ? profile.name : 'Hosteller',
+          roomNumber: cleanUsn === profile.usn.toUpperCase() ? profile.roomNumber : 'Hostel Block',
+          hostelBlock: cleanUsn === profile.usn.toUpperCase() ? profile.hostelBlock : 'Cauvery Block',
+          branch: cleanUsn === profile.usn.toUpperCase() ? profile.branch : 'Engineering',
+        };
+        list.unshift({
+          usn: cleanUsn,
+          name: std.name,
+          roomNumber: std.roomNumber,
+          hostelBlock: std.hostelBlock,
+          branch: std.branch,
+          blockedAt: nowStr,
+          reason,
+        });
+        await AsyncStorage.setItem(STORAGE_KEYS.BLOCKED_STUDENTS, JSON.stringify(list));
+      }
+    } catch (e) {
+      console.warn('swoLockOuting storage error:', e);
+    }
+
+    api.swoLockOuting({ usn: cleanUsn, reason }).catch(() => {});
+
+    await this.addNotification({
+      usn: cleanUsn,
+      title: 'Outing Privileges Suspended by SWO',
+      message: `Your outing privileges have been suspended by ${swoOfficerName}.\n\nReason: "${reason}"\n\nYou cannot generate subsequent outpasses until cleared by the Student Welfare Officer.`,
+      type: 'swo_cleared',
+      severity: 'critical',
+    });
+
+    return {
+      success: true,
+      message: `Outing access locked for ${cleanUsn} by ${swoOfficerName}.`,
+    };
+  },
+
   async swoPermitOuting(
     usn: string,
     swoOfficerName: string = 'Dr. Suresh Babu (SWO)',
     remarks: string = 'Approved for subsequent outings after student counseling.'
   ): Promise<{ success: boolean; message: string }> {
+    const cleanUsn = usn.trim().toUpperCase();
     const profile = await this.getProfile();
 
-    if (profile.usn.toUpperCase() === usn.toUpperCase()) {
+    if (profile.usn.toUpperCase() === cleanUsn) {
       profile.isOutingBlocked = false;
       profile.outingBlockReason = undefined;
       profile.outingBlockedAt = undefined;
       await this.updateProfile(profile);
     }
 
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.BLOCKED_STUDENTS);
+      if (stored) {
+        const list = JSON.parse(stored).filter((b: any) => b.usn.toUpperCase() !== cleanUsn);
+        await AsyncStorage.setItem(STORAGE_KEYS.BLOCKED_STUDENTS, JSON.stringify(list));
+      }
+    } catch (e) {
+      console.warn('swoPermitOuting storage error:', e);
+    }
+
+    api.swoPermitOuting(cleanUsn).catch(() => {});
+
     // Dispatch clear notification to student
     await this.addNotification({
-      usn,
-      title: '✅ Outing Permission Restored by SWO',
+      usn: cleanUsn,
+      title: 'Outing Permission Restored by SWO',
       message: `Your outing restriction has been cleared by ${swoOfficerName}.\n\nRemarks: "${remarks}"\n\nYou are now permitted to apply for regular day outings and govt holiday passes. Please maintain punctuality.`,
       type: 'swo_cleared',
       severity: 'success',
@@ -2793,7 +3438,7 @@ export const StorageService = {
 
     return {
       success: true,
-      message: `Outing clearance granted for ${usn} by ${swoOfficerName}. Student can now generate new outpasses.`,
+      message: `Outing clearance granted for ${cleanUsn} by ${swoOfficerName}. Student can now generate new outpasses.`,
     };
   },
 
@@ -2806,19 +3451,43 @@ export const StorageService = {
     blockedAt: string;
     reason: string;
   }>> {
-    const profile = await this.getProfile();
-    const blockedList: Array<{
-      usn: string;
-      name: string;
-      roomNumber: string;
-      hostelBlock: string;
-      branch: string;
-      blockedAt: string;
-      reason: string;
-    }> = [];
+    try {
+      const serverBlocked = await api.getBlockedStudents().catch(() => null);
+      if (serverBlocked && Array.isArray(serverBlocked) && serverBlocked.length > 0) {
+        await AsyncStorage.setItem(STORAGE_KEYS.BLOCKED_STUDENTS, JSON.stringify(serverBlocked));
+        return serverBlocked;
+      }
+    } catch {
+      // fallback
+    }
 
-    if (profile.isOutingBlocked) {
-      blockedList.push({
+    const profile = await this.getProfile();
+    let blockedList: Array<any> = [];
+
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.BLOCKED_STUDENTS);
+      if (stored) {
+        blockedList = JSON.parse(stored);
+      } else {
+        blockedList = [
+          {
+            usn: '1RV22EC045',
+            name: 'Rohan Mehta',
+            roomNumber: 'A-102',
+            hostelBlock: 'Sharavathi Block A-1',
+            branch: 'Electronics & Communication',
+            blockedAt: '2026-09-28 17:15',
+            reason: 'Late Return Curfew Violation: Returned at 05:15 PM (Breached 04:30 PM cutoff by 45m).',
+          },
+        ];
+        await AsyncStorage.setItem(STORAGE_KEYS.BLOCKED_STUDENTS, JSON.stringify(blockedList));
+      }
+    } catch {
+      blockedList = [];
+    }
+
+    if (profile.isOutingBlocked && !blockedList.some((b) => b.usn.toUpperCase() === profile.usn.toUpperCase())) {
+      blockedList.unshift({
         usn: profile.usn,
         name: profile.name,
         roomNumber: profile.roomNumber,
@@ -2828,17 +3497,6 @@ export const StorageService = {
         reason: profile.outingBlockReason || 'Late Return Curfew Violation',
       });
     }
-
-    // Pre-seed an additional hosteller so SWO demo desk always has case to review
-    blockedList.push({
-      usn: '1RV22EC045',
-      name: 'Rohan Mehta',
-      roomNumber: 'A-102',
-      hostelBlock: 'Sharavathi Block A-1',
-      branch: 'Electronics & Communication',
-      blockedAt: '2024-10-24 17:15',
-      reason: 'Late Return Curfew Violation: Returned at 05:15 PM (Breached 04:30 PM cutoff by 45m).',
-    });
 
     return blockedList;
   },
@@ -2973,6 +3631,18 @@ export const StorageService = {
       severity: 'critical',
     });
 
+    api.grantEmergencyLeaveByAO({
+      usn: cleanUsn,
+      studentName,
+      roomNumber,
+      reason: params.reason,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      totalDays: params.totalDays,
+      destination: params.destination,
+      remarks: params.remarks,
+    }).catch(() => {});
+
     return newLeave;
   },
 
@@ -2983,13 +3653,16 @@ export const StorageService = {
     hostelBlock?: string;
     startDate: string;
     startSession?: 'Morning' | 'Evening';
+    departureTime?: string;
     endDate: string;
     returnSession?: 'Morning' | 'Evening';
+    expectedReturnTime?: string;
     leaveType?: LeaveApplication['leaveType'];
     reason: string;
     destination?: string;
     remarks?: string;
     aoOfficerName?: string;
+    isCompensationPass?: boolean;
   }): Promise<LeaveApplication> {
     const cleanUsn = params.usn.trim().toUpperCase();
     const profile = await this.getProfile();
@@ -3008,9 +3681,12 @@ export const StorageService = {
 
     const startSession = params.startSession || 'Morning';
     const returnSession = params.returnSession || 'Morning';
+    const departureTime = params.departureTime || (startSession === 'Evening' ? '05:00 PM' : '09:00 AM');
+    const expectedReturnTime = params.expectedReturnTime || (returnSession === 'Evening' ? '06:00 PM' : '08:30 AM');
     const destination = params.destination || 'Home / Authorized Destination';
     const leaveType = params.leaveType || 'Home Visit';
     const aoOfficer = params.aoOfficerName || 'Administrative Officer (AO)';
+    const isCompensation = params.isCompensationPass !== false;
 
     // Compute session days and weekend exemption (Saturday PM to Monday AM is 0 days)
     const sessionCalc = calculateLeaveSessionDays({
@@ -3021,8 +3697,8 @@ export const StorageService = {
     });
 
     const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
-    const couponNumber = `COUPON-${Math.floor(10000 + Math.random() * 90000)}`;
-    const tokenNumber = `DUP-${Math.floor(10000 + Math.random() * 90000)}`;
+    const passCode = isCompensation ? `COMP-PASS-${Math.floor(10000 + Math.random() * 90000)}` : `COUPON-${Math.floor(10000 + Math.random() * 90000)}`;
+    const tokenNumber = isCompensation ? `TK-CP-${Math.floor(10000 + Math.random() * 90000)}` : `DUP-${Math.floor(10000 + Math.random() * 90000)}`;
     const newId = `DUP-${Math.floor(1000 + Math.random() * 9000)}`;
     const uniqueSuffix = Math.floor(10000 + Math.random() * 90000);
     const regId = `REG-DUP-${cleanUsn}-${uniqueSuffix}`;
@@ -3040,14 +3716,18 @@ export const StorageService = {
       leaveType: leaveType,
       startDate: params.startDate,
       startSession: startSession,
+      departureTime: departureTime,
       endDate: params.endDate,
       returnSession: returnSession,
+      expectedReturnTime: expectedReturnTime,
       totalDays: sessionCalc.totalCalendarDays,
       chargedDays: sessionCalc.chargedDays,
       isWeekendExempt: sessionCalc.isWeekendExempt,
       isLateApplication: true,
       isDuplicateCoupon: true,
-      duplicateCouponNumber: couponNumber,
+      duplicateCouponNumber: passCode,
+      isCompensationPass: isCompensation,
+      compensationPassNumber: passCode,
       reason: params.reason,
       destination: destination,
       appliedDate: new Date().toISOString().split('T')[0],
@@ -3065,7 +3745,7 @@ export const StorageService = {
           approverName: aoOfficer,
           remarks:
             params.remarks ||
-            `Late leave deadline override sanctioned by ${aoOfficer}. AO Duplicate Coupon #${couponNumber} issued. Immediate gate clearance approved.`,
+            `Late leave deadline override sanctioned by ${aoOfficer}. AO Duplicate / Compensation Pass #${passCode} issued for ${departureTime} departure. Immediate gate clearance approved.`,
         },
       ],
       movementHistory: [],
@@ -3118,13 +3798,382 @@ export const StorageService = {
     // 5. Send High-Priority Notification to Student
     await this.addNotification({
       usn: cleanUsn,
-      title: '🎫 AO Duplicate Coupon Issued',
-      message: `${aoOfficer} has issued an AO Duplicate Coupon (${couponNumber}) overriding the late application deadline for ${params.startDate} (${startSession}) to ${params.endDate} (${returnSession}).\nCharged Quota: ${sessionCalc.chargedDays} Days.\nDigital Gate Pass (${tokenNumber}) is active on your portal.`,
+      title: isCompensation ? '🎫 AO Duplicate / Compensation Pass Issued' : '🎫 AO Duplicate Coupon Issued',
+      message: `${aoOfficer} has issued an AO Compensation Pass (${passCode}) overriding the missed 2-day 5:00 PM cutoff for departure on ${params.startDate} (${departureTime}) to ${params.endDate} (${expectedReturnTime}).\nCharged Quota: ${sessionCalc.chargedDays} Days.\nDigital Gate Pass Token (${tokenNumber}) is now active on your portal.`,
       type: 'duplicate_coupon',
       severity: 'warning',
     });
 
+    api.issueDuplicateCouponByAO({
+      usn: cleanUsn,
+      studentName,
+      roomNumber,
+      startDate: params.startDate,
+      startSession,
+      departureTime,
+      endDate: params.endDate,
+      returnSession,
+      expectedReturnTime,
+      leaveType,
+      reason: params.reason,
+      destination,
+      remarks: params.remarks,
+    }).catch(() => {});
+
     return newLeave;
+  },
+
+  // =========================================================
+  // VEHICLE BOOKING & TRANSIT METHODS (Vidyagiri & Health Center)
+  // =========================================================
+  async getVehicleSlots(): Promise<VehicleSlot[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.VEHICLE_SLOTS);
+      if (data) return JSON.parse(data);
+      await AsyncStorage.setItem(STORAGE_KEYS.VEHICLE_SLOTS, JSON.stringify(INITIAL_VEHICLE_SLOTS));
+      return INITIAL_VEHICLE_SLOTS;
+    } catch {
+      return INITIAL_VEHICLE_SLOTS;
+    }
+  },
+
+  async getVehicleBookings(): Promise<VehicleBooking[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.VEHICLE_BOOKINGS);
+      if (data) return JSON.parse(data);
+      await AsyncStorage.setItem(STORAGE_KEYS.VEHICLE_BOOKINGS, JSON.stringify(INITIAL_VEHICLE_BOOKINGS));
+      return INITIAL_VEHICLE_BOOKINGS;
+    } catch {
+      return INITIAL_VEHICLE_BOOKINGS;
+    }
+  },
+
+  async getMyVehicleBookings(usn: string): Promise<VehicleBooking[]> {
+    const all = await this.getVehicleBookings();
+    const cleanUsn = usn.trim().toUpperCase();
+    return all.filter((b) => b.usn.toUpperCase() === cleanUsn);
+  },
+
+  async getVehicleStats(): Promise<{ vidyagiriTotal: number; healthCenterTotal: number; totalBooked: number }> {
+    const all = await this.getVehicleBookings();
+    const active = all.filter((b) => b.status === 'Confirmed' || b.status === 'Boarded');
+    const vidyagiriTotal = active.filter((b) => b.destination === 'Vidyagiri').length;
+    const healthCenterTotal = active.filter((b) => b.destination === 'Health Center').length;
+    return {
+      vidyagiriTotal,
+      healthCenterTotal,
+      totalBooked: active.length,
+    };
+  },
+
+  checkVehicleSlotCutoff(departureTime: string, departureDateStr?: string): {
+    canApply: boolean;
+    minutesRemaining: number;
+    message: string;
+  } {
+    const clean = departureTime.trim().toUpperCase();
+    const match = clean.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/);
+    if (!match) {
+      return { canApply: false, minutesRemaining: 0, message: 'Invalid timing. Format: 09:30 AM or 02:30 PM.' };
+    }
+
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const meridian = match[3];
+    if (meridian === 'PM' && hours < 12) hours += 12;
+    if (meridian === 'AM' && hours === 12) hours = 0;
+    const depMinutes = hours * 60 + minutes;
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const targetDate = departureDateStr || todayStr;
+
+    // Advance date booking
+    if (targetDate > todayStr) {
+      return { canApply: true, minutesRemaining: 9999, message: 'Advance booking open (prior to 15 min cutoff).' };
+    }
+    if (targetDate < todayStr) {
+      return { canApply: false, minutesRemaining: -9999, message: 'Departure date has already passed.' };
+    }
+
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const diffMinutes = depMinutes - currentMinutes;
+
+    if (diffMinutes < 0) {
+      return {
+        canApply: false,
+        minutesRemaining: diffMinutes,
+        message: `⛔ Trip departed at ${departureTime}. Please select the next scheduled vehicle.`,
+      };
+    }
+
+    if (diffMinutes < 15) {
+      return {
+        canApply: false,
+        minutesRemaining: diffMinutes,
+        message: `⛔ Booking Closed: Departs in ${diffMinutes} min. AIET rule requires booking at least 15 minutes before assigned timing (${departureTime}).`,
+      };
+    }
+
+    return {
+      canApply: true,
+      minutesRemaining: diffMinutes,
+      message: `✅ Booking Open (${diffMinutes} min before departure).`,
+    };
+  },
+
+  async bookVehicle(params: {
+    usn: string;
+    studentName: string;
+    roomNumber: string;
+    contactNumber: string;
+    destination: VehicleDestination;
+    vehicleType: VehicleType;
+    departureTime: string;
+    departureDate?: string;
+    reason: string;
+    pickupPoint?: string;
+    driverName?: string;
+    driverContact?: string;
+    vehiclePlate?: string;
+    isHealthCareEmergency?: boolean;
+  }): Promise<{ success: boolean; message: string; booking?: VehicleBooking }> {
+    const departureDate = params.departureDate || new Date().toISOString().split('T')[0];
+
+    // Enforce 15-minute cutoff rule
+    const cutoffCheck = this.checkVehicleSlotCutoff(params.departureTime, departureDate);
+    if (!cutoffCheck.canApply) {
+      return {
+        success: false,
+        message: cutoffCheck.message,
+      };
+    }
+
+    const allBookings = await this.getVehicleBookings();
+    const cleanUsn = params.usn.trim().toUpperCase();
+
+    // Prevent duplicate active booking on same time slot
+    const existing = allBookings.find(
+      (b) =>
+        b.usn.toUpperCase() === cleanUsn &&
+        b.departureDate === departureDate &&
+        b.departureTime === params.departureTime &&
+        b.status === 'Confirmed'
+    );
+    if (existing) {
+      return {
+        success: false,
+        message: `You already have an active booking (${existing.bookingToken}) for this timing.`,
+      };
+    }
+
+    const destCode = params.destination === 'Vidyagiri' ? 'VID' : 'HLT';
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const token = `VB-${destCode}-${randomNum}`;
+    const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Calculate seat number
+    const sameSlotBookings = allBookings.filter(
+      (b) =>
+        b.destination === params.destination &&
+        b.departureTime === params.departureTime &&
+        b.departureDate === departureDate &&
+        b.status === 'Confirmed'
+    );
+    const seatNumber = sameSlotBookings.length + 1;
+
+    const newBooking: VehicleBooking = {
+      id: `VB-ID-${Date.now()}`,
+      bookingToken: token,
+      usn: cleanUsn,
+      studentName: params.studentName,
+      roomNumber: params.roomNumber,
+      contactNumber: params.contactNumber,
+      destination: params.destination,
+      vehicleType: params.vehicleType,
+      departureTime: params.departureTime,
+      departureDate,
+      pickupPoint: params.pickupPoint || (params.destination === 'Health Center' ? 'Hostel Health Room Gate' : 'Hostel Gate 1 Porch'),
+      driverName: params.driverName || 'Campus Transport Pilot',
+      driverContact: params.driverContact || '+91 98450 12345',
+      vehiclePlate: params.vehiclePlate || (params.vehicleType === 'Eeco' ? 'KA-19-E-5511' : params.vehicleType === 'TT' ? 'KA-19-M-3912' : 'KA-19-B-7102'),
+      seatNumber,
+      reason: params.reason,
+      status: 'Confirmed',
+      bookedAt: `Today ${nowTimeStr}`,
+      isHealthCareEmergency: params.isHealthCareEmergency || false,
+    };
+
+    const updated = [newBooking, ...allBookings];
+    await AsyncStorage.setItem(STORAGE_KEYS.VEHICLE_BOOKINGS, JSON.stringify(updated));
+
+    // Send student confirmation notification
+    await this.addNotification({
+      usn: cleanUsn,
+      title: `🚐 ${params.vehicleType} Booked for ${params.destination}`,
+      message: `Your seat (#${seatNumber}) has been reserved for ${params.departureTime}. Boarding Pass: ${token}. Pickup: ${newBooking.pickupPoint}. Driver: ${newBooking.driverName} (${newBooking.driverContact}).`,
+      type: 'general',
+      severity: 'success',
+    });
+
+    return {
+      success: true,
+      message: `Seat #${seatNumber} confirmed on ${params.vehicleType} for ${params.destination} at ${params.departureTime}. Boarding Pass: ${token}.`,
+      booking: newBooking,
+    };
+  },
+
+  async cancelVehicleBooking(bookingId: string): Promise<void> {
+    const all = await this.getVehicleBookings();
+    const updated = all.map((b) => (b.id === bookingId ? { ...b, status: 'Cancelled' as const } : b));
+    await AsyncStorage.setItem(STORAGE_KEYS.VEHICLE_BOOKINGS, JSON.stringify(updated));
+  },
+
+  // =========================================================
+  // AO SPECIAL PETITIONS (Fees Delay, Mess Reduction, Study Cert, Marks Card)
+  // ONLY AO CAN APPROVE THIS
+  // =========================================================
+  async getAoPetitions(usn?: string): Promise<AoStudentPetition[]> {
+    try {
+      const serverPetitions = await api.getAoPetitions(usn).catch(() => null);
+      if (serverPetitions && Array.isArray(serverPetitions) && serverPetitions.length > 0) {
+        await AsyncStorage.setItem(STORAGE_KEYS.AO_PETITIONS, JSON.stringify(serverPetitions));
+        return serverPetitions;
+      }
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.AO_PETITIONS);
+      let list: AoStudentPetition[] = [];
+      if (stored) {
+        list = JSON.parse(stored);
+      } else {
+        list = INITIAL_AO_PETITIONS;
+        await AsyncStorage.setItem(STORAGE_KEYS.AO_PETITIONS, JSON.stringify(list));
+      }
+      if (usn) {
+        return list.filter((p) => p.usn.toUpperCase() === usn.trim().toUpperCase());
+      }
+      return list;
+    } catch (e) {
+      console.warn('getAoPetitions error:', e);
+      return INITIAL_AO_PETITIONS;
+    }
+  },
+
+  async submitAoPetition(
+    data: Omit<AoStudentPetition, 'id' | 'requestedDate' | 'status'>
+  ): Promise<AoStudentPetition> {
+    const all = await this.getAoPetitions();
+    const newPetition: AoStudentPetition = {
+      ...data,
+      id: `AO-PET-${Date.now().toString().slice(-5)}`,
+      requestedDate: new Date().toISOString().split('T')[0],
+      status: 'Pending AO Approval',
+    };
+    const updated = [newPetition, ...all];
+    await AsyncStorage.setItem(STORAGE_KEYS.AO_PETITIONS, JSON.stringify(updated));
+    api.submitAoPetition(newPetition).catch(() => {});
+
+    // Notify student
+    await this.addNotification({
+      usn: newPetition.usn,
+      title: `Petition Submitted: ${newPetition.type}`,
+      message: `Your application (${newPetition.id}) for ${newPetition.type} has been forwarded to the Administrative Officer (AO Desk). Only the AO can review and sanction this request.`,
+      type: 'general',
+      severity: 'info',
+    });
+
+    return newPetition;
+  },
+
+  async approveAoPetition(
+    petitionId: string,
+    aoRemarks: string = 'Approved by Administrative Officer with institutional compliance.',
+    certRef?: string
+  ): Promise<{ success: boolean; message: string; petition?: AoStudentPetition }> {
+    const all = await this.getAoPetitions();
+    let approvedItem: AoStudentPetition | null = null;
+    const refNumber = certRef || `AIET/AO/${Date.now().toString().slice(-6)}`;
+
+    const updated = all.map((p) => {
+      if (p.id === petitionId) {
+        approvedItem = {
+          ...p,
+          status: 'Approved by AO' as const,
+          aoRemarks,
+          approvedDate: new Date().toISOString().split('T')[0],
+          certificateRefNumber: refNumber,
+          dispatchedDocumentTitle:
+            p.type === 'Study Certificate'
+              ? `Official_Study_Certificate_${p.usn}.pdf`
+              : p.type === 'Marks Card / Grade Transcript'
+              ? `Verified_Transcript_Sem${p.targetSemester || 4}_${p.usn}.pdf`
+              : undefined,
+        };
+        return approvedItem;
+      }
+      return p;
+    });
+
+    await AsyncStorage.setItem(STORAGE_KEYS.AO_PETITIONS, JSON.stringify(updated));
+    api.approveAoPetition(petitionId, { aoRemarks, certificateRefNumber: refNumber }).catch(() => {});
+
+    if (approvedItem) {
+      const item: AoStudentPetition = approvedItem;
+      // Student notification
+      await this.addNotification({
+        usn: item.usn,
+        title: `AO Approved: ${item.type}`,
+        message: `Your request for ${item.type} (Ref: ${refNumber}) has been approved by the Administrative Officer.\n\nAO Remarks: "${aoRemarks}"\nOfficial document / permission token is now live in your account.`,
+        type: 'general',
+        severity: 'success',
+      });
+    }
+
+    return {
+      success: true,
+      message: `Petition ${petitionId} approved by Administrative Officer. Official Reference: ${refNumber}.`,
+      petition: approvedItem || undefined,
+    };
+  },
+
+  async rejectAoPetition(
+    petitionId: string,
+    aoRemarks: string = 'Rejected by Administrative Officer after institutional verification.'
+  ): Promise<{ success: boolean; message: string }> {
+    const all = await this.getAoPetitions();
+    let rejectedItem: AoStudentPetition | null = null;
+
+    const updated = all.map((p) => {
+      if (p.id === petitionId) {
+        rejectedItem = {
+          ...p,
+          status: 'Rejected by AO' as const,
+          aoRemarks,
+          approvedDate: new Date().toISOString().split('T')[0],
+        };
+        return rejectedItem;
+      }
+      return p;
+    });
+
+    await AsyncStorage.setItem(STORAGE_KEYS.AO_PETITIONS, JSON.stringify(updated));
+    api.rejectAoPetition(petitionId, { aoRemarks }).catch(() => {});
+
+    if (rejectedItem) {
+      const item: AoStudentPetition = rejectedItem;
+
+      await this.addNotification({
+        usn: item.usn,
+        title: `Petition Rejected: ${item.type}`,
+        message: `Your request for ${item.type} was declined by the Administrative Officer.\n\nReason: "${aoRemarks}"`,
+        type: 'general',
+        severity: 'critical',
+      });
+    }
+
+    return {
+      success: true,
+      message: `Petition ${petitionId} rejected by Administrative Officer.`,
+    };
   },
 
   async resetAllData(): Promise<void> {

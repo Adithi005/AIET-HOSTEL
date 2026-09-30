@@ -7,7 +7,10 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Image,
+  Platform,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import {
   Utensils,
   Clock,
@@ -20,6 +23,9 @@ import {
   Sun,
   Sunset,
   Moon,
+  Camera,
+  Trash2,
+  ShieldCheck,
 } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { colors } from '../theme/colors';
@@ -33,6 +39,7 @@ export const MessScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [stars, setStars] = useState(5);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [mealPhoto, setMealPhoto] = useState<string | null>(null);
 
   React.useEffect(() => {
     StorageService.getProfile().then(setProfile);
@@ -54,19 +61,63 @@ export const MessScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     }
   };
 
-  const handleRatingSubmit = () => {
-    if (!feedbackText.trim() && stars <= 3) {
-      Alert.alert('Comment Suggested', 'Please let the mess committee know what could be improved.');
+  const handleCaptureMealPhoto = async () => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (permission.granted === false) {
+        Alert.alert(
+          'Camera Access Required',
+          'Please allow camera access to take a live photo of your meal for committee quality review.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setMealPhoto(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.warn('Camera capture error', err);
+      Alert.alert('Camera Error', 'Could not open camera on this device.');
+    }
+  };
+
+  const handleRatingSubmit = async () => {
+    if (!feedbackText.trim() && stars <= 3 && !mealPhoto) {
+      Alert.alert(
+        'Details Suggested',
+        'Please let the mess committee know what could be improved, or snap a live meal photo.'
+      );
       return;
     }
 
-    setFeedbackSubmitted(true);
-    Alert.alert(
-      'Feedback Recorded',
-      `Thank you for rating today's ${ratingMeal} (${stars} Stars). Your feedback has been forwarded to the hostel mess supervisor.`
-    );
-    setFeedbackText('');
-    setTimeout(() => setFeedbackSubmitted(false), 3000);
+    try {
+      await StorageService.submitMessRating({
+        mealType: ratingMeal,
+        rating: stars,
+        feedback: feedbackText.trim() || undefined,
+        photoUri: mealPhoto || undefined,
+      });
+
+      setFeedbackSubmitted(true);
+      const photoNote = mealPhoto ? ' with live meal photo inspection' : '';
+      Alert.alert(
+        'Feedback Stored & Dispatched',
+        `Thank you! Your rating for ${ratingMeal} (${stars} Stars)${photoNote} has been safely saved and sent directly to the Admin Dashboard for warden & mess committee review. Uploaded meal photos are never stored in your personal phone gallery.`
+      );
+      // Discard uploaded photo so it is not stored permanently on device
+      setMealPhoto(null);
+      setFeedbackText('');
+      setTimeout(() => setFeedbackSubmitted(false), 3000);
+    } catch (err) {
+      console.warn('Mess rating error', err);
+      Alert.alert('Submission Error', 'Failed to store mess review. Please try again.');
+    }
   };
 
   return (
@@ -96,7 +147,11 @@ export const MessScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         {/* Day of Week Selector */}
         <View style={styles.daySelectorWrapper}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.dayScrollContent}
+          >
             {(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const).map(
               (day) => (
                 <TouchableOpacity
@@ -211,6 +266,44 @@ export const MessScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             numberOfLines={2}
           />
 
+          {/* Live In-App Camera Meal Capture */}
+          <View style={styles.messCameraSection}>
+            <View style={styles.messCameraHeader}>
+              <View style={styles.messCameraIconWrap}>
+                <Camera size={16} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.messCameraTitle}>Live Meal Photo Verification</Text>
+                <Text style={styles.messCameraSub}>
+                  In-app camera only • Gallery disabled • Not saved to device
+                </Text>
+              </View>
+            </View>
+
+            {mealPhoto ? (
+              <View style={styles.messPhotoPreviewCard}>
+                <Image source={{ uri: mealPhoto }} style={styles.messPhotoPreview} />
+                <TouchableOpacity
+                  style={styles.discardMealPhotoBtn}
+                  onPress={() => setMealPhoto(null)}
+                  activeOpacity={0.8}
+                >
+                  <Trash2 size={14} color="#FFFFFF" />
+                  <Text style={styles.discardMealPhotoText}>Discard Photo</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.takeMealPhotoBtn}
+                onPress={handleCaptureMealPhoto}
+                activeOpacity={0.85}
+              >
+                <Camera size={18} color="#FFFFFF" />
+                <Text style={styles.takeMealPhotoBtnText}>Open Camera to Snap Meal Plate</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
           <TouchableOpacity
             style={styles.submitRatingBtn}
             onPress={handleRatingSubmit}
@@ -249,6 +342,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 36,
+    ...Platform.select({
+      web: {
+        maxWidth: 1240,
+        width: '100%',
+        alignSelf: 'center',
+        paddingHorizontal: 28,
+        paddingTop: 20,
+      },
+    }),
   },
   bannerCard: {
     backgroundColor: colors.primaryDark,
@@ -282,8 +384,9 @@ const styles = StyleSheet.create({
   daySelectorWrapper: {
     marginBottom: 14,
   },
-  dayScroll: {
+  dayScrollContent: {
     flexDirection: 'row',
+    paddingRight: 16,
   },
   dayChip: {
     paddingHorizontal: 16,
@@ -318,14 +421,19 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   mealsContainer: {
-    gap: 12,
+    gap: 14,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 20,
   },
   mealCard: {
     backgroundColor: colors.surfaceCard,
     borderRadius: 14,
-    padding: 14,
+    padding: 16,
     borderWidth: 1,
     borderColor: colors.border,
+    flex: 1,
+    minWidth: 280,
   },
   mealCardSpecial: {
     borderColor: '#FDE68A',
@@ -466,6 +574,81 @@ const styles = StyleSheet.create({
     minHeight: 50,
     marginBottom: 12,
     textAlignVertical: 'top',
+  },
+  messCameraSection: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 14,
+  },
+  messCameraHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  messCameraIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: colors.primarySubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  messCameraTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  messCameraSub: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 1,
+  },
+  takeMealPhotoBtn: {
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  takeMealPhotoBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  messPhotoPreviewCard: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    padding: 8,
+  },
+  messPhotoPreview: {
+    width: '100%',
+    height: 160,
+    borderRadius: 8,
+    resizeMode: 'cover',
+  },
+  discardMealPhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  discardMealPhotoText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   submitRatingBtn: {
     backgroundColor: colors.primary,

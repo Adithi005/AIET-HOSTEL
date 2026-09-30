@@ -1,0 +1,506 @@
+{
+  "profile": {
+    "usn": "1RV22CS089",
+    "name": "Aditya Sharma",
+    "branch": "Computer Science & Engineering",
+    "mail": "aditya.cs22@rvce.edu.in",
+    "contactNumber": "+91 98765 43210",
+    "guardianContact": "+91 98765 01234",
+    "hostelBlock": "Cauvery Block (B-3)",
+    "roomNumber": "B-304",
+    "currentSemester": 5,
+    "academicYear": "3rd Year (2024-2025)",
+    "avatarUri": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
+    "leavesCount": 4,
+    "isOutingBlocked": false,
+    "outingBlockReason": null
+  },
+  "outings": [
+    {
+      "id": "OUT-3013",
+      "registrationId": "REG-OUT-1RV22CS089-3013",
+      "barcode": "*REG-OUT-1RV22CS089-3013*",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "hostelBlock": "Cauvery Block B-3",
+      "outingType": "Regular Outing",
+      "outDate": "2026-09-29",
+      "outTime": "09:00 AM",
+      "expectedInTime": "04:00 PM",
+      "checkOutTime": "09:50 am",
+      "checkOutGate": "Campus Main Gate 1",
+      "checkOutGuard": "Security Guard Ramu",
+      "destination": "Local City Center",
+      "purpose": "Books purchase and project discussion",
+      "contactNumber": "+91 98765 43210",
+      "emergencyContact": "+91 98765 01234",
+      "appliedAt": "Today 08:40 AM",
+      "status": "Exited Gate",
+      "outpassToken": "OP-59821",
+      "qrCodeValue": "AIETNEST-OP-59821-1RV22CS089",
+      "movementHistory": [
+        {
+          "id": "EVT-OUT-3013-1",
+          "action": "Check Out",
+          "timestamp": "Today 09:30 AM",
+          "gate": "Campus Main Gate 1",
+          "guardName": "Security Guard Ramu",
+          "remarks": "Outpass verified at gate.",
+          "barcode": "*REG-OUT-1RV22CS089-3013*",
+          "usn": "1RV22CS089"
+        },
+        {
+          "id": "EVT-OUT-1790655627039",
+          "action": "Check Out",
+          "timestamp": "Today 09:50 am",
+          "gate": "Campus Main Gate 1",
+          "guardName": "Security Guard Ramu",
+          "remarks": "Outpass barcode verified. Student exited campus.",
+          "barcode": "*REG-OUT-1RV22CS089-3013*",
+          "usn": "1RV22CS089"
+        }
+      ]
+    },
+    {
+      "id": "OUT-3012",
+      "registrationId": "REG-OUT-1RV22CS089-3012",
+      "barcode": "*REG-OUT-1RV22CS089-3012*",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "hostelBlock": "Cauvery Block B-3",
+      "outingType": "Govt Holiday Outing",
+      "outDate": "2026-09-27",
+      "outTime": "09:00 AM",
+      "expectedInTime": "02:00 PM",
+      "checkOutTime": "09:15 AM",
+      "checkOutGate": "Campus Main Gate 1",
+      "checkOutGuard": "Security Guard Somanna",
+      "checkInTime": "01:45 PM",
+      "checkInGate": "Campus Main Gate 1",
+      "checkInGuard": "Security Guard Somanna",
+      "destination": "Town Library",
+      "purpose": "Reference study",
+      "appliedAt": "2026-09-27 08:30 AM",
+      "status": "Returned & Closed",
+      "outpassToken": "OP-59810",
+      "movementHistory": []
+    }
+  ],
+  "leaves": [
+    {
+      "id": "LV-1004",
+      "registrationId": "REG-LV-1RV22CS089-1004",
+      "barcode": "*REG-LV-1RV22CS089-1004*",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "leaveType": "Home Visit",
+      "startDate": "2026-10-18",
+      "endDate": "2026-10-21",
+      "startSession": "Morning",
+      "returnSession": "Evening",
+      "totalDays": 3,
+      "reason": "Family function visit",
+      "appliedDate": "2026-10-14",
+      "status": "Approved",
+      "gateToken": "TK-84920",
+      "tokenGeneratedAt": "2026-10-14 16:30",
+      "isGovtHoliday": true,
+      "holidayName": "Deepavali Holidays",
+      "chargedDays": 0,
+      "isAutoApproved": true,
+      "movementHistory": []
+    }
+  ],
+  "grievances": [
+    {
+      "id": "GRV-201",
+      "usn": "1RV22CS089",
+      "roomNumber": "B-304",
+      "category": "Plumbing & Water",
+      "description": "Washbasin tap leaking continuously causing water stagnation in bathroom.",
+      "photoUri": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop&q=80",
+      "urgency": "High",
+      "status": "Submitted",
+      "createdAt": "2026-09-29 14:30",
+      "adminRemark": "Plumber scheduled for inspection."
+    },
+    {
+      "id": "GRV-202",
+      "usn": "1RV22CS045",
+      "roomNumber": "A-208",
+      "category": "Electrical & Fan",
+      "description": "Ceiling fan regulator sparking and speed control knob damaged.",
+      "photoUri": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80",
+      "urgency": "Emergency",
+      "status": "In Progress",
+      "createdAt": "2026-09-28 11:15",
+      "adminRemark": "Assigned to Electrician Ramesh (Work in progress)."
+    }
+  ],
+  "messRatings": [
+    {
+      "id": "MESS-1790742959436",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "mealType": "Dinner",
+      "rating": 4,
+      "feedback": "Tasty tonight",
+      "photoUri": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600",
+      "date": "2026-09-30",
+      "createdAt": "2026-09-30 04:35"
+    },
+    {
+      "id": "MESS-101",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "mealType": "Lunch",
+      "rating": 2,
+      "feedback": "Paneer curry was undercooked and chapati served cold. Quality needs urgent check.",
+      "photoUri": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80",
+      "date": "2026-09-29",
+      "createdAt": "2026-09-29 13:45"
+    },
+    {
+      "id": "MESS-102",
+      "usn": "1RV22EC032",
+      "studentName": "Pooja Hegde",
+      "roomNumber": "C-112",
+      "mealType": "Breakfast",
+      "rating": 5,
+      "feedback": "Idli and Sambar were hot, fresh, and delicious today! Chutney was very good.",
+      "photoUri": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80",
+      "date": "2026-09-29",
+      "createdAt": "2026-09-29 08:30"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "NOTIF-1790783745316",
+      "usn": "1RV22CS089",
+      "title": "AO Approved: Fees Delay Permission",
+      "message": "Your request for Fees Delay Permission (Ref: AIET/AO/745316) has been sanctioned by the Administrative Officer. Official document/permission is now live.",
+      "timestamp": "Just now",
+      "read": false
+    },
+    {
+      "id": "NOTIF-1790783736840",
+      "usn": "1RV22CS089",
+      "title": "Petition Submitted: Fees Delay Permission",
+      "message": "Your application (AO-PET-36840) for Fees Delay Permission has been forwarded to the Administrative Officer (AO Desk). Only the AO can review and sanction this request.",
+      "timestamp": "Just now",
+      "read": false
+    },
+    {
+      "id": "NOTIF-1",
+      "usn": "1RV22CS089",
+      "title": "Gate Pass Approved",
+      "message": "Your outing pass for today has been auto-approved.",
+      "timestamp": "Today 08:45 AM",
+      "read": false
+    }
+  ],
+  "gateLogs": [
+    {
+      "id": "GLOG-503",
+      "registrationId": "REG-OUT-3012",
+      "barcode": "*REG-OUT-3012*",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "type": "Outing",
+      "destination": "Jayanagar 4th Block Shopping Complex",
+      "action": "Check In",
+      "timestamp": "2026-09-29 15:45",
+      "station": "Campus Main Gate 1",
+      "guardName": "Security Guard Ramu",
+      "remarks": "Barcode verified at scanner. Returned safely before curfew.",
+      "isLate": false
+    },
+    {
+      "id": "GLOG-502",
+      "registrationId": "REG-OUT-3012",
+      "barcode": "*REG-OUT-3012*",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "type": "Outing",
+      "destination": "Jayanagar 4th Block Shopping Complex",
+      "action": "Check Out",
+      "timestamp": "2026-09-29 09:30",
+      "station": "Campus Main Gate 1",
+      "guardName": "Security Guard Ramu",
+      "remarks": "Outpass barcode scanned. Departure logged.",
+      "isLate": false
+    },
+    {
+      "id": "GLOG-501",
+      "registrationId": "REG-LV-1004",
+      "barcode": "*REG-LV-1004*",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "type": "Leave",
+      "destination": "Home Visit (Mangalore)",
+      "action": "Check In",
+      "timestamp": "2026-09-22 08:15",
+      "station": "Campus Main Gate 2",
+      "guardName": "Head Guard Somanna",
+      "remarks": "Home leave completed. Verified student token.",
+      "isLate": false
+    },
+    {
+      "id": "GLOG-500",
+      "registrationId": "REG-LV-1004",
+      "barcode": "*REG-LV-1004*",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "type": "Leave",
+      "destination": "Home Visit (Mangalore)",
+      "action": "Check Out",
+      "timestamp": "2026-09-18 17:10",
+      "station": "Campus Main Gate 2",
+      "guardName": "Head Guard Somanna",
+      "remarks": "Approved 4-day leave outpass scanned. Departure logged.",
+      "isLate": false
+    }
+  ],
+  "aoPetitions": [
+    {
+      "id": "AO-PET-36840",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "hostelBlock": "Cauvery Block B-3",
+      "type": "Fees Delay Permission",
+      "reason": "Testing complete flow",
+      "requestedDate": "2026-09-30",
+      "expectedPaymentDate": "2026-10-20",
+      "status": "Approved by AO",
+      "aoRemarks": "Sanctioned by AO with fee extension granted.",
+      "approvedDate": "2026-09-30",
+      "certificateRefNumber": "AIET/AO/745316"
+    },
+    {
+      "id": "AO-PET-101",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "hostelBlock": "Cauvery Block B-3",
+      "type": "Fees Delay Permission",
+      "reason": "Education loan disbursement pending from Canara Bank main branch. Requesting 15-day payment extension till Oct 15th.",
+      "requestedDate": "2026-09-28",
+      "expectedPaymentDate": "2026-10-15",
+      "status": "Pending AO Approval"
+    },
+    {
+      "id": "AO-PET-102",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "hostelBlock": "Cauvery Block B-3",
+      "type": "Mess Bill Reduction",
+      "reason": "Participated in VTU Inter-Collegiate Athletics Meet and was away from campus for 8 consecutive days.",
+      "requestedDate": "2026-09-25",
+      "reductionDays": 8,
+      "status": "Pending AO Approval"
+    },
+    {
+      "id": "AO-PET-103",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "hostelBlock": "Cauvery Block B-3",
+      "type": "Study Certificate",
+      "reason": "Required for State Post-Matric e-Pass Scholarship Renewal application portal.",
+      "requestedDate": "2026-09-26",
+      "purpose": "State Scholarship Portal Verification",
+      "targetSemester": 5,
+      "status": "Pending AO Approval"
+    },
+    {
+      "id": "AO-PET-104",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "hostelBlock": "Cauvery Block B-3",
+      "type": "Marks Card / Grade Transcript",
+      "reason": "Official verified 4th Semester grade transcript copy required for off-campus summer technical internship background verification.",
+      "requestedDate": "2026-09-27",
+      "purpose": "Internship Onboarding Verification",
+      "targetSemester": 4,
+      "status": "Pending AO Approval"
+    }
+  ],
+  "academics": [
+    {
+      "semester": 5,
+      "academicYear": "2024-2025",
+      "sgpa": 8.85,
+      "cgpa": 8.95,
+      "overallAttendance": 86.4,
+      "subjects": [
+        {
+          "code": "21CS51",
+          "name": "Management & Entrepreneurship",
+          "ia1": 28,
+          "ia2": 27,
+          "ia3": 29,
+          "maxIa": 30,
+          "classesAttended": 42,
+          "totalClasses": 48,
+          "attendancePercentage": 87.5
+        },
+        {
+          "code": "21CS52",
+          "name": "Computer Networks",
+          "ia1": 26,
+          "ia2": 28,
+          "ia3": 27,
+          "maxIa": 30,
+          "classesAttended": 38,
+          "totalClasses": 44,
+          "attendancePercentage": 86.4
+        },
+        {
+          "code": "21CS53",
+          "name": "Database Management Systems",
+          "ia1": 29,
+          "ia2": 29,
+          "ia3": 30,
+          "maxIa": 30,
+          "classesAttended": 44,
+          "totalClasses": 48,
+          "attendancePercentage": 91.7
+        },
+        {
+          "code": "21CS54",
+          "name": "Theory of Computation",
+          "ia1": 24,
+          "ia2": 25,
+          "ia3": 26,
+          "maxIa": 30,
+          "classesAttended": 34,
+          "totalClasses": 46,
+          "attendancePercentage": 73.9
+        },
+        {
+          "code": "21CS55",
+          "name": "Software Engineering",
+          "ia1": 27,
+          "ia2": 28,
+          "ia3": 28,
+          "maxIa": 30,
+          "classesAttended": 40,
+          "totalClasses": 44,
+          "attendancePercentage": 90.9
+        }
+      ]
+    },
+    {
+      "semester": 4,
+      "academicYear": "2023-2024",
+      "sgpa": 9.2,
+      "cgpa": 8.98,
+      "overallAttendance": 89.2,
+      "subjects": [
+        {
+          "code": "21MAT41",
+          "name": "Complex Analysis & Transforms",
+          "ia1": 28,
+          "ia2": 29,
+          "ia3": 30,
+          "maxIa": 30,
+          "classesAttended": 43,
+          "totalClasses": 48,
+          "attendancePercentage": 89.6
+        },
+        {
+          "code": "21CS42",
+          "name": "Design & Analysis of Algorithms",
+          "ia1": 29,
+          "ia2": 30,
+          "ia3": 29,
+          "maxIa": 30,
+          "classesAttended": 42,
+          "totalClasses": 46,
+          "attendancePercentage": 91.3
+        }
+      ]
+    }
+  ],
+  "healthLogs": [
+    {
+      "id": "HLOG-001",
+      "usn": "1RV22CS089",
+      "studentName": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "hostelBlock": "Cauvery Block B-3",
+      "date": "2026-09-28",
+      "status": "Resting in Health Room",
+      "location": "Hostel Health Room / Sick Bay",
+      "symptomsOrDiagnosis": "Acute viral fever (102°F), shivering and fatigue",
+      "doctorName": "Dr. Preethi Rao (Hostel Physician)",
+      "prescribedMedicines": "Paracetamol 650mg TDS, ORS Electrolytes",
+      "guardianIntimated": true,
+      "checkInTime": "2026-09-28 08:30 AM",
+      "recordedByWarden": "Mr. R. K. Gowda (Warden)",
+      "remarks": "Student advised complete bed rest in hostel sick bay."
+    }
+  ],
+  "students": [
+    {
+      "usn": "1RV22CS089",
+      "name": "Aditya Sharma",
+      "roomNumber": "B-304",
+      "hostelBlock": "Cauvery Block B-3",
+      "branch": "Computer Science & Engineering",
+      "year": "3rd Year",
+      "guardianContact": "+91 98765 01234",
+      "deviceModel": "Pixel 8 Pro (Android 14)",
+      "activeDeviceId": "HWID-PX8-9921",
+      "isInsideCampus": true
+    },
+    {
+      "usn": "1RV22EC045",
+      "name": "Rohan Mehta",
+      "roomNumber": "A-102",
+      "hostelBlock": "Sharavathi Block A-1",
+      "branch": "Electronics & Communication",
+      "year": "3rd Year",
+      "guardianContact": "+91 98451 11223",
+      "deviceModel": "iPhone 15 Pro (iOS 17)",
+      "activeDeviceId": "HWID-IP15-4412",
+      "isInsideCampus": false
+    },
+    {
+      "usn": "1RV21ME078",
+      "name": "Vignesh Rao",
+      "roomNumber": "B-110",
+      "hostelBlock": "Cauvery Block B-1",
+      "branch": "Mechanical Engineering",
+      "year": "4th Year",
+      "guardianContact": "+91 99002 99887",
+      "deviceModel": "Samsung Galaxy S23 (Android 14)",
+      "activeDeviceId": "HWID-S23-7721",
+      "isInsideCampus": true
+    }
+  ],
+  "blockedStudents": [
+    {
+      "usn": "1RV22EC045",
+      "name": "Rohan Mehta",
+      "roomNumber": "A-102",
+      "hostelBlock": "Sharavathi Block A-1",
+      "branch": "ECE",
+      "reason": "Late return curfew breach (+45m past 04:30 PM cutoff)",
+      "blockedAt": "2026-09-28 17:15"
+    }
+  ],
+  "vehicleBookings": []
+}

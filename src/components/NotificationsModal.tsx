@@ -160,6 +160,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: colors.surface,
@@ -168,6 +169,9 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
     minHeight: '50%',
     paddingBottom: 28,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
   },
   header: {
     flexDirection: 'row',

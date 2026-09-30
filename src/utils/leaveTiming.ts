@@ -148,3 +148,111 @@ export function calculateLeaveSessionDays(params: {
     calculationExplanation: explanation,
   };
 }
+
+/**
+ * Calculates the minimum allowed departure date for student leave application.
+ * Institutional Policy: Leave must be applied at least 2 full days in advance before 5:00 PM.
+ * E.g., if today is Sep 29, applications start strictly from Oct 2.
+ * (Sep 29, Sep 30, and Oct 1 cannot be applied by student; only AO Admin can issue an AO Duplicate/Compensation Pass).
+ */
+export function getMinEligibleLeaveStartDate(referenceDate: Date = new Date()): {
+  minDateStr: string;
+  minFormatted: string;
+  todayStr: string;
+  todayFormatted: string;
+} {
+  const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const now = new Date(referenceDate);
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const todayFormatted = `${months[now.getMonth()]} ${pad(now.getDate())}, ${now.getFullYear()}`;
+
+  // Advance by 3 calendar days to guarantee the 2-days-prior-5PM deadline (e.g. Sep 29 -> Oct 2)
+  const minDate = new Date(now);
+  minDate.setDate(now.getDate() + 3);
+
+  const minDateStr = `${minDate.getFullYear()}-${pad(minDate.getMonth() + 1)}-${pad(minDate.getDate())}`;
+  const minFormatted = `${months[minDate.getMonth()]} ${pad(minDate.getDate())}, ${minDate.getFullYear()}`;
+
+  return {
+    minDateStr,
+    minFormatted,
+    todayStr,
+    todayFormatted,
+  };
+}
+
+export interface EligibleLeaveDateItem {
+  dateStr: string;
+  dayName: string;
+  formattedDate: string;
+  isWeekend: boolean;
+}
+
+/**
+ * Returns an array of eligible upcoming departure dates starting from the minimum date (e.g. Oct 2 when today is Sep 29).
+ */
+export function getEligibleLeaveDatesList(
+  referenceDate: Date = new Date(),
+  count: number = 14
+): EligibleLeaveDateItem[] {
+  const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const { minDateStr } = getMinEligibleLeaveStartDate(referenceDate);
+  const parts = minDateStr.split('-');
+  const start = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+
+  const list: EligibleLeaveDateItem[] = [];
+  for (let i = 0; i < count; i++) {
+    const cur = new Date(start);
+    cur.setDate(start.getDate() + i);
+
+    const dateStr = `${cur.getFullYear()}-${pad(cur.getMonth() + 1)}-${pad(cur.getDate())}`;
+    const formattedDate = `${months[cur.getMonth()]} ${pad(cur.getDate())}`;
+    const dayName = dayNames[cur.getDay()];
+    const isWeekend = cur.getDay() === 0 || cur.getDay() === 6;
+
+    list.push({
+      dateStr,
+      dayName,
+      formattedDate,
+      isWeekend,
+    });
+  }
+  return list;
+}
+
+/**
+ * Validates whether a requested departure date is allowed under the 2-day advance notice rule.
+ */
+export function validateLeaveStartDate(
+  startDateStr: string,
+  referenceDate: Date = new Date()
+): {
+  isAllowed: boolean;
+  minDateStr: string;
+  minFormatted: string;
+  reason: string;
+} {
+  const { minDateStr, minFormatted, todayFormatted } = getMinEligibleLeaveStartDate(referenceDate);
+
+  if (!startDateStr || startDateStr < minDateStr) {
+    return {
+      isAllowed: false,
+      minDateStr,
+      minFormatted,
+      reason: `Institutional Leave Policy: Students must apply leave 2 days before 5:00 PM. Applications for departure before ${minFormatted} (such as ${startDateStr || 'today'}) are closed. As of today (${todayFormatted}), leaves can only be applied from ${minFormatted} onwards. For emergency leave, only the AO Admin can issue an AO Duplicate / Compensation Pass.`,
+    };
+  }
+
+  return {
+    isAllowed: true,
+    minDateStr,
+    minFormatted,
+    reason: `Application permitted. Departure is on or after ${minFormatted}.`,
+  };
+}
+

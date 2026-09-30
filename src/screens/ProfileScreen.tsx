@@ -8,6 +8,7 @@ import {
   TextInput,
   Image,
   Alert,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -62,8 +63,17 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
     });
   }, []);
 
-  const handleChangePhoto = async () => {
+  const pickFromGallery = async () => {
     try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permission.granted === false) {
+        Alert.alert(
+          'Gallery Access Required',
+          'Please allow photo library permission to choose your profile photo from your album.'
+        );
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -72,13 +82,73 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setAvatarUri(result.assets[0].uri);
+        const newUri = result.assets[0].uri;
+        setAvatarUri(newUri);
+        if (profile) {
+          const updated = { ...profile, avatarUri: newUri };
+          setProfile(updated);
+          await StorageService.updateProfile(updated);
+          Alert.alert('Profile Photo Updated', 'Your profile photo has been updated from your album.');
+        }
       }
     } catch (err) {
-      console.warn('Image picker error', err);
-      // Fallback
-      setAvatarUri('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80');
+      console.warn('Gallery pick error', err);
+      Alert.alert('Gallery Error', 'Could not access photo gallery.');
     }
+  };
+
+  const takeWithCamera = async () => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (permission.granted === false) {
+        Alert.alert(
+          'Camera Access Required',
+          'Please allow camera permission to capture your student profile photo.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newUri = result.assets[0].uri;
+        setAvatarUri(newUri);
+        if (profile) {
+          const updated = { ...profile, avatarUri: newUri };
+          setProfile(updated);
+          await StorageService.updateProfile(updated);
+          Alert.alert('Profile Photo Updated', 'Your profile photo has been updated from camera capture.');
+        }
+      }
+    } catch (err) {
+      console.warn('Camera error', err);
+      Alert.alert('Camera Error', 'Could not open camera on this device.');
+    }
+  };
+
+  const handleChangePhoto = () => {
+    Alert.alert(
+      'Profile Photo Options',
+      'Select how you want to update your institutional profile photo:',
+      [
+        {
+          text: '🖼️ Choose from Gallery / Album',
+          onPress: pickFromGallery,
+        },
+        {
+          text: '📷 Take Photo with Camera',
+          onPress: takeWithCamera,
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
   const handleSaveProfile = async () => {
@@ -135,10 +205,12 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('HomeTab'))}
+          activeOpacity={0.75}
         >
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.profileTitleHeader}>Student Profile</Text>
+        <View style={{ width: 60 }} />
       </View>
 
       <ScrollView
@@ -164,6 +236,15 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
               <Camera size={14} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={styles.changePhotoBtn}
+            onPress={handleChangePhoto}
+            activeOpacity={0.8}
+          >
+            <Camera size={13} color={colors.primary} />
+            <Text style={styles.changePhotoBtnText}>Update Photo (Gallery / Camera)</Text>
+          </TouchableOpacity>
 
           <Text style={styles.profileName}>{name || 'Student Name'}</Text>
           <Text style={styles.profileBranch}>{branch || 'Department'}</Text>
@@ -462,6 +543,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
+    ...Platform.select({
+      web: {
+        maxWidth: 960,
+        width: '100%',
+        alignSelf: 'center',
+        paddingHorizontal: 28,
+        paddingTop: 20,
+      },
+    }),
   },
   avatarCard: {
     backgroundColor: colors.surfaceCard,
@@ -508,6 +598,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
+  },
+  changePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primaryLight + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    marginTop: 8,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  changePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primary,
   },
   profileName: {
     fontSize: 18,
@@ -707,9 +815,11 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   profileTitleHeader: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     color: colors.text,
+    textAlign: 'center',
+    flex: 1,
   },
   deviceSecurityCard: {
     backgroundColor: '#F0FDFA',

@@ -69,17 +69,20 @@ export const BarcodeView: React.FC<BarcodeViewProps> = ({
         ))}
       </View>
 
-      <Text style={styles.codeText}>* {value.toUpperCase()} *</Text>
+      <Text style={styles.codeText} numberOfLines={1} ellipsizeMode="middle">
+        * {value.toUpperCase()} *
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -91,21 +94,24 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 6,
+    textAlign: 'center',
   },
   barcodeWrapper: {
     flexDirection: 'row',
     alignItems: 'stretch',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 6,
+    maxWidth: '100%',
+    paddingHorizontal: 4,
     overflow: 'hidden',
   },
   codeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     fontFamily: 'monospace',
     color: '#1E293B',
-    letterSpacing: 2,
+    letterSpacing: 1,
     marginTop: 6,
+    textAlign: 'center',
   },
 });

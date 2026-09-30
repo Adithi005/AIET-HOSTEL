@@ -34,9 +34,11 @@ export const Header: React.FC<HeaderProps> = ({
               resizeMode="contain"
             />
           </View>
-          <View>
-            <Text style={styles.appName}>AIETNEST</Text>
-            <Text style={styles.tagline}>A connected home for every AIET hosteller</Text>
+          <View style={styles.brandTextWrap}>
+            <Text style={styles.appName} numberOfLines={1}>AIETNEST</Text>
+            <Text style={styles.tagline} numberOfLines={1} ellipsizeMode="tail">
+              A connected home for every AIET hosteller
+            </Text>
           </View>
         </TouchableOpacity>
 
@@ -47,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
               onPress={onNotificationsPress}
               activeOpacity={0.75}
             >
-              <Bell size={20} color={colors.text} />
+              <Bell size={19} color={colors.text} />
               {(unreadNotificationCount ?? 0) > 0 && (
                 <View style={styles.bellBadge}>
                   <Text style={styles.bellBadgeText}>
@@ -65,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
               activeOpacity={0.8}
             >
               <Text style={styles.usnLabel}>USN</Text>
-              <Text style={styles.usnValue}>{profile.usn}</Text>
+              <Text style={styles.usnValue} numberOfLines={1}>{profile.usn}</Text>
             </TouchableOpacity>
           )}
 
@@ -103,11 +105,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 10,
   },
   brandContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  brandTextWrap: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
   logoBadge: {
     width: 38,
@@ -124,37 +134,41 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
     overflow: 'hidden',
+    flexShrink: 0,
   },
   logoImage: {
     width: 32,
     height: 32,
   },
   appName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: colors.primaryDark,
     letterSpacing: 0.5,
   },
   tagline: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textSecondary,
     fontWeight: '500',
+    marginTop: 1,
   },
   rightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
+    flexShrink: 0,
   },
   usnChip: {
     backgroundColor: colors.primarySubtle,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#C7D2FE',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
   },
   usnLabel: {
     fontSize: 10,

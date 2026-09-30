@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
   Modal,
+  Platform,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import {
@@ -23,10 +24,15 @@ import {
   Eye,
   Trash2,
   X,
+  Clock,
+  AlertCircle,
+  Building,
+  Receipt,
+  ShieldAlert,
 } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { colors } from '../theme/colors';
-import { UserProfile, SemesterRecord, StudentDocument } from '../types';
+import { UserProfile, SemesterRecord, StudentDocument, AoPetitionType, AoStudentPetition } from '../types';
 import { StorageService } from '../services/storage';
 
 export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -34,7 +40,7 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   const [academics, setAcademics] = useState<SemesterRecord[]>([]);
   const [documents, setDocuments] = useState<StudentDocument[]>([]);
   const [selectedSem, setSelectedSem] = useState<number>(5);
-  const [activeTab, setActiveTab] = useState<'academics' | 'documents'>('academics');
+  const [activeTab, setActiveTab] = useState<'academics' | 'documents' | 'petitions'>('academics');
 
   // Document Upload Modal state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -42,13 +48,30 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   const [docCategory, setDocCategory] = useState<StudentDocument['category']>('Marks Card');
   const [selectedFile, setSelectedFile] = useState<{ name: string; uri: string } | null>(null);
 
+  // AO Office Petitions state (Fees Delay, Mess Bill Reduction, Study Certificate, Marks Card)
+  const [petitions, setPetitions] = useState<AoStudentPetition[]>([]);
+  const [isPetitionModalOpen, setIsPetitionModalOpen] = useState(false);
+  const [petitionType, setPetitionType] = useState<AoPetitionType>('Fees Delay Permission');
+  const [petitionReason, setPetitionReason] = useState('');
+  const [petitionExpectedPaymentDate, setPetitionExpectedPaymentDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 15);
+    return d.toISOString().split('T')[0];
+  });
+  const [petitionReductionDays, setPetitionReductionDays] = useState('7');
+  const [petitionPurpose, setPetitionPurpose] = useState('');
+  const [petitionTargetSemester, setPetitionTargetSemester] = useState(5);
+  const [isSubmittingPetition, setIsSubmittingPetition] = useState(false);
+
   const loadData = useCallback(async () => {
     const p = await StorageService.getProfile();
     const a = await StorageService.getAcademics();
     const d = await StorageService.getDocuments();
+    const pet = await StorageService.getAoPetitions(p?.usn || '1RV22CS089');
     setProfile(p);
     setAcademics(a);
     setDocuments(d);
+    setPetitions(pet);
   }, []);
 
   React.useEffect(() => {
@@ -106,9 +129,60 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
     await loadData();
   };
 
+  const handleSubmitPetition = async () => {
+    if (!petitionReason.trim()) {
+      Alert.alert('Reason Required', 'Please provide a clear justification for your application to the AO.');
+      return;
+    }
+    setIsSubmittingPetition(true);
+    try {
+      const studentUsn = profile?.usn || '1RV22CS089';
+      const studentName = profile?.name || 'Adithya Shenoy';
+      const roomNumber = profile?.roomNumber || 'B-304';
+      const hostelBlock = profile?.hostelBlock || 'Cauvery Block';
+
+      await StorageService.submitAoPetition({
+        usn: studentUsn,
+        studentName,
+        roomNumber,
+        hostelBlock,
+        type: petitionType,
+        reason: petitionReason.trim(),
+        expectedPaymentDate: petitionType === 'Fees Delay Permission' ? petitionExpectedPaymentDate : undefined,
+        reductionDays: petitionType === 'Mess Bill Reduction' ? (parseInt(petitionReductionDays, 10) || 7) : undefined,
+        purpose: (petitionType === 'Study Certificate' || petitionType === 'Marks Card / Grade Transcript') ? (petitionPurpose.trim() || 'Official Administrative Clearance') : undefined,
+        targetSemester: petitionType === 'Marks Card / Grade Transcript' ? petitionTargetSemester : undefined,
+      });
+
+      setIsPetitionModalOpen(false);
+      setPetitionReason('');
+      setPetitionPurpose('');
+      await loadData();
+
+      Alert.alert(
+        'Petition Submitted to AO Desk',
+        `Your application for ${petitionType} has been submitted directly to the Administrative Officer.\n\nInstitutional Jurisdiction: Only the AO can review and sanction fee extensions, mess adjustments, and official certificates. Track status below.`
+      );
+    } catch (err: any) {
+      Alert.alert('Submission Error', err.message || 'Could not submit petition.');
+    } finally {
+      setIsSubmittingPetition(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Header profile={profile} onProfilePress={() => navigation.navigate('ProfileTab')} />
+      <View style={styles.topNavBar}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('HomeTab'))}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.topNavTitle}>Academic & Document Vault</Text>
+        <View style={{ width: 60 }} />
+      </View>
 
       <ScrollView
         style={styles.scrollArea}
@@ -164,7 +238,25 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                 activeTab === 'documents' && styles.mainTabBtnTextActive,
               ]}
             >
-              Document Vault ({documents.length})
+              Vault ({documents.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.mainTabBtn, activeTab === 'petitions' && styles.mainTabBtnActive]}
+            onPress={() => setActiveTab('petitions')}
+          >
+            <Building
+              size={16}
+              color={activeTab === 'petitions' ? '#0D9488' : colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.mainTabBtnText,
+                activeTab === 'petitions' && { color: '#0D9488', fontWeight: '800' },
+              ]}
+            >
+              AO Desk ({petitions.length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -377,6 +469,175 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             </View>
           </View>
         )}
+
+        {/* =======================================================
+            TAB 3: ADMINISTRATIVE OFFICER (AO) SPECIAL PETITIONS
+           ======================================================= */}
+        {activeTab === 'petitions' && (
+          <View style={{ gap: 14 }}>
+            {/* AO Authority Banner */}
+            <View style={styles.aoStudentBanner}>
+              <View style={styles.aoStudentBannerHeader}>
+                <Building size={20} color="#0D9488" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.aoStudentBannerTitle}>
+                    Administrative Officer (AO) Office Petitions
+                  </Text>
+                  <Text style={styles.aoStudentBannerSub}>
+                    Institutional Executive Jurisdiction: Only the Administrative Officer can sanction fees delay permission, mess bill reduction, study certificates, and official verified marks cards / grade transcripts.
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Header Action Row */}
+            <View style={styles.vaultSectionHeader}>
+              <View>
+                <Text style={styles.subHeading}>MY AO PETITIONS & CLEARANCES</Text>
+                <Text style={styles.subHeadingNote}>Track status of submitted applications</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.applyPetitionBtn}
+                onPress={() => setIsPetitionModalOpen(true)}
+                activeOpacity={0.85}
+              >
+                <Plus size={16} color="#FFFFFF" />
+                <Text style={styles.applyPetitionBtnText}>Apply to AO</Text>
+              </TouchableOpacity>
+            </View>
+
+            {petitions.length === 0 ? (
+              <View style={styles.emptyPetitionBox}>
+                <CheckCircle2 size={36} color="#10B981" />
+                <Text style={styles.emptyPetitionTitle}>No Active Petitions</Text>
+                <Text style={styles.emptyPetitionSub}>
+                  Need a fee payment extension, mess bill rebate, study certificate, or grade transcript? Tap "Apply to AO" above.
+                </Text>
+              </View>
+            ) : (
+              petitions.map((item) => {
+                const isApproved = item.status === 'Approved by AO';
+                const isPending = item.status === 'Pending AO Approval';
+                return (
+                  <View key={item.id} style={styles.petitionStudentCard}>
+                    <View style={styles.petitionStudentCardHeader}>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <Award size={16} color="#0D9488" />
+                          <Text style={styles.petitionCardTypeTitle}>{item.type}</Text>
+                        </View>
+                        <Text style={styles.petitionCardDateText}>Applied: {item.requestedDate} • ID: {item.id}</Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.petitionStatusBadge,
+                          isApproved ? styles.statusApproved : isPending ? styles.statusPending : styles.statusRejected,
+                        ]}
+                      >
+                        <Text style={styles.petitionStatusBadgeText}>{item.status}</Text>
+                      </View>
+                    </View>
+
+                    {/* Specific details */}
+                    <View style={styles.petitionParamBox}>
+                      <Text style={styles.petitionReasonText}>
+                        <Text style={{ fontWeight: '700' }}>Reason: </Text>
+                        "{item.reason}"
+                      </Text>
+
+                      {item.expectedPaymentDate && (
+                        <View style={styles.petitionParamRow}>
+                          <Clock size={13} color="#D97706" />
+                          <Text style={styles.petitionParamLabel}>
+                            Fee Extension Requested Till: <Text style={{ fontWeight: '800' }}>{item.expectedPaymentDate}</Text>
+                          </Text>
+                        </View>
+                      )}
+
+                      {item.reductionDays !== undefined && (
+                        <View style={styles.petitionParamRow}>
+                          <Receipt size={13} color="#0D9488" />
+                          <Text style={styles.petitionParamLabel}>
+                            Mess Bill Rebate Requested: <Text style={{ fontWeight: '800' }}>{item.reductionDays} Days</Text>
+                          </Text>
+                        </View>
+                      )}
+
+                      {item.purpose && (
+                        <View style={styles.petitionParamRow}>
+                          <FileText size={13} color="#4F46E5" />
+                          <Text style={styles.petitionParamLabel}>
+                            Institutional Purpose: <Text style={{ fontWeight: '800' }}>{item.purpose}</Text>
+                          </Text>
+                        </View>
+                      )}
+
+                      {item.targetSemester && (
+                        <View style={styles.petitionParamRow}>
+                          <GraduationCap size={13} color="#7C3AED" />
+                          <Text style={styles.petitionParamLabel}>
+                            Academic Record: <Text style={{ fontWeight: '800' }}>Semester {item.targetSemester}</Text>
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* AO Approval Section */}
+                    {isApproved && (
+                      <View style={styles.aoEndorsementCard}>
+                        <View style={styles.aoEndorsementHeader}>
+                          <CheckCircle2 size={15} color="#059669" />
+                          <Text style={styles.aoEndorsementTitle}>Sanctioned by Administrative Officer</Text>
+                        </View>
+                        {item.certificateRefNumber && (
+                          <Text style={styles.aoRefNumberText}>
+                            Official Certificate Ref: <Text style={{ fontWeight: '800' }}>{item.certificateRefNumber}</Text>
+                          </Text>
+                        )}
+                        {item.aoRemarks && (
+                          <Text style={styles.aoRemarksNote}>
+                            Order Note: "{item.aoRemarks}"
+                          </Text>
+                        )}
+                        {item.dispatchedDocumentTitle && (
+                          <View style={styles.docDispatchedBox}>
+                            <FileCheck size={14} color="#0D9488" />
+                            <Text style={styles.docDispatchedText}>{item.dispatchedDocumentTitle}</Text>
+                            <TouchableOpacity
+                              style={styles.docDownloadMiniBtn}
+                              onPress={() => Alert.alert('Verified Document', `Digital seal verified: ${item.dispatchedDocumentTitle}\nReference: ${item.certificateRefNumber}`)}
+                            >
+                              <Text style={styles.docDownloadMiniText}>View Sealed PDF</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {/* AO Rejection Remarks */}
+                    {!isApproved && !isPending && item.aoRemarks && (
+                      <View style={styles.aoRejectionCard}>
+                        <AlertCircle size={15} color="#DC2626" />
+                        <Text style={styles.aoRejectionText}>
+                          AO Decline Note: "{item.aoRemarks}"
+                        </Text>
+                      </View>
+                    )}
+
+                    {isPending && (
+                      <View style={styles.aoPendingNotice}>
+                        <Clock size={13} color="#B45309" />
+                        <Text style={styles.aoPendingNoticeText}>
+                          Under review at Administrative Officer's Desk. Awaiting official order.
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* =======================================================
@@ -461,6 +722,182 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
           </View>
         </View>
       </Modal>
+
+      {/* =======================================================
+          AO PETITION APPLICATION MODAL
+         ======================================================= */}
+      <Modal visible={isPetitionModalOpen} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { maxHeight: '90%' }]}>
+            <View style={styles.modalSheetHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Building size={18} color="#0D9488" />
+                <Text style={styles.modalSheetTitle}>Apply to Administrative Officer</Text>
+              </View>
+              <TouchableOpacity onPress={() => setIsPetitionModalOpen(false)}>
+                <X size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ paddingHorizontal: 20, paddingTop: 14 }}>
+              {/* Institutional Notice */}
+              <View style={styles.aoModalNoticeCard}>
+                <AlertCircle size={15} color="#0D9488" />
+                <Text style={styles.aoModalNoticeText}>
+                  Only the Administrative Officer (AO Desk) has executive authority to sanction fees extension, mess billing rebates, and official certificates.
+                </Text>
+              </View>
+
+              {/* APPLICANT IDENTITY: ONLY USN IS DISPLAYED OR REVEALED */}
+              <View style={styles.applicantUsnStrip}>
+                <View style={styles.applicantUsnBadge}>
+                  <Text style={styles.applicantUsnBadgeText}>APPLICANT USN</Text>
+                </View>
+                <Text style={styles.applicantUsnValue}>{profile?.usn || '1RV22CS089'}</Text>
+                <Text style={styles.applicantUsnPolicy}>(Only USN is displayed or revealed)</Text>
+              </View>
+
+              <Text style={styles.modalFieldLabel}>SELECT APPLICATION TYPE *</Text>
+              {(
+                [
+                  'Fees Delay Permission',
+                  'Mess Bill Reduction',
+                  'Study Certificate',
+                  'Marks Card / Grade Transcript',
+                ] as AoPetitionType[]
+              ).map((typeOpt) => {
+                const isSelected = petitionType === typeOpt;
+                return (
+                  <TouchableOpacity
+                    key={typeOpt}
+                    style={[styles.petitionTypeOptionCard, isSelected && styles.petitionTypeOptionCardActive]}
+                    onPress={() => setPetitionType(typeOpt)}
+                  >
+                    <View style={[styles.radioCircle, isSelected && styles.radioCircleActive]}>
+                      {isSelected && <View style={styles.radioInner} />}
+                    </View>
+                    <Text style={[styles.petitionTypeOptionText, isSelected && styles.petitionTypeOptionTextActive]}>
+                      {typeOpt}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* Dynamic Parameter: Fees Delay */}
+              {petitionType === 'Fees Delay Permission' && (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={styles.modalFieldLabel}>REQUESTED FEE PAYMENT DATE (YYYY-MM-DD) *</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={petitionExpectedPaymentDate}
+                    onChangeText={setPetitionExpectedPaymentDate}
+                    placeholder="e.g. 2026-10-15"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                  <Text style={styles.fieldHelperText}>
+                    Specify the date by which your semester / hostel fees will be deposited.
+                  </Text>
+                </View>
+              )}
+
+              {/* Dynamic Parameter: Mess Bill Reduction */}
+              {petitionType === 'Mess Bill Reduction' && (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={styles.modalFieldLabel}>NUMBER OF REBATE DAYS TO CREDIT *</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={petitionReductionDays}
+                    onChangeText={setPetitionReductionDays}
+                    keyboardType="numeric"
+                    placeholder="e.g. 7"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                  <Text style={styles.fieldHelperText}>
+                    Subject to continuous absence of 5+ days with approved leave voucher.
+                  </Text>
+                </View>
+              )}
+
+              {/* Dynamic Parameter: Study Certificate */}
+              {petitionType === 'Study Certificate' && (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={styles.modalFieldLabel}>PURPOSE OF STUDY CERTIFICATE *</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={petitionPurpose}
+                    onChangeText={setPetitionPurpose}
+                    placeholder="e.g. Passport Application / Educational Bank Loan"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </View>
+              )}
+
+              {/* Dynamic Parameter: Marks Card / Grade Transcript */}
+              {petitionType === 'Marks Card / Grade Transcript' && (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={styles.modalFieldLabel}>TARGET SEMESTER (1 to 8) *</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', marginVertical: 6 }}>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                      <TouchableOpacity
+                        key={s}
+                        style={[
+                          styles.semSelectChip,
+                          petitionTargetSemester === s && styles.semSelectChipActive,
+                        ]}
+                        onPress={() => setPetitionTargetSemester(s)}
+                      >
+                        <Text
+                          style={[
+                            styles.semSelectChipText,
+                            petitionTargetSemester === s && styles.semSelectChipTextActive,
+                          ]}
+                        >
+                          Sem {s}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
+                  <Text style={[styles.modalFieldLabel, { marginTop: 8 }]}>PURPOSE OF TRANSCRIPT *</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={petitionPurpose}
+                    onChangeText={setPetitionPurpose}
+                    placeholder="e.g. Higher Studies / Visa Verification / Internship"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </View>
+              )}
+
+              {/* Detailed Reason */}
+              <View style={{ marginTop: 10 }}>
+                <Text style={styles.modalFieldLabel}>STATEMENT / JUSTIFICATION TO ADMINISTRATIVE OFFICER *</Text>
+                <TextInput
+                  style={[styles.modalInput, { height: 75, textAlignVertical: 'top' }]}
+                  value={petitionReason}
+                  onChangeText={setPetitionReason}
+                  placeholder="Detail why you are requesting this concession or certificate..."
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.submitAoPetitionBtn, isSubmittingPetition && { opacity: 0.6 }]}
+                onPress={handleSubmitPetition}
+                disabled={isSubmittingPetition}
+                activeOpacity={0.85}
+              >
+                <CheckCircle2 size={16} color="#FFFFFF" />
+                <Text style={styles.submitAoPetitionBtnText}>
+                  {isSubmittingPetition ? 'Forwarding to AO...' : 'Submit Petition to AO Desk'}
+                </Text>
+              </TouchableOpacity>
+              <View style={{ height: 30 }} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -470,12 +907,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  topNavBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.surfaceCard,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  backButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: colors.background,
+  },
+  backButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  topNavTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.text,
+    textAlign: 'center',
+    flex: 1,
+  },
   scrollArea: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
     paddingBottom: 36,
+    ...Platform.select({
+      web: {
+        maxWidth: 1240,
+        width: '100%',
+        alignSelf: 'center',
+        paddingHorizontal: 28,
+        paddingTop: 20,
+      },
+    }),
   },
   vaultBanner: {
     backgroundColor: colors.primaryDark,
@@ -952,5 +1426,376 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,
+  },
+
+  // AO Petitions Styles
+  vaultSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  subHeadingNote: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  aoStudentBanner: {
+    backgroundColor: '#F0FDFA',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    marginVertical: 4,
+  },
+  aoStudentBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  aoStudentBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F766E',
+  },
+  aoStudentBannerSub: {
+    fontSize: 11,
+    color: '#115E59',
+    lineHeight: 16,
+    marginTop: 3,
+  },
+  applyPetitionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#0D9488',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  applyPetitionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  emptyPetitionBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
+    marginVertical: 10,
+  },
+  emptyPetitionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  emptyPetitionSub: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  petitionStudentCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  petitionStudentCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  petitionCardTypeTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  petitionCardDateText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  petitionStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  statusApproved: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  statusPending: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  statusRejected: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  petitionStatusBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  petitionParamBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 10,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  petitionReasonText: {
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 18,
+  },
+  petitionParamRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  petitionParamLabel: {
+    fontSize: 12,
+    color: '#475569',
+  },
+  aoEndorsementCard: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    gap: 4,
+  },
+  aoEndorsementHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  aoEndorsementTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#065F46',
+  },
+  aoRefNumberText: {
+    fontSize: 11,
+    color: '#047857',
+  },
+  aoRemarksNote: {
+    fontSize: 11,
+    color: '#065F46',
+    fontStyle: 'italic',
+  },
+  docDispatchedBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    gap: 6,
+  },
+  docDispatchedText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#065F46',
+    flex: 1,
+  },
+  docDownloadMiniBtn: {
+    backgroundColor: '#0D9488',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  docDownloadMiniText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  aoRejectionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  aoRejectionText: {
+    fontSize: 11,
+    color: '#991B1B',
+    flex: 1,
+  },
+  aoPendingNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  aoPendingNoticeText: {
+    fontSize: 11,
+    color: '#92400E',
+    flex: 1,
+  },
+  aoModalNoticeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F0FDFA',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    marginBottom: 12,
+  },
+  aoModalNoticeText: {
+    fontSize: 11,
+    color: '#0F766E',
+    flex: 1,
+    lineHeight: 16,
+  },
+  petitionTypeOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+    marginVertical: 4,
+    gap: 10,
+  },
+  petitionTypeOptionCardActive: {
+    borderColor: '#0D9488',
+    backgroundColor: '#F0FDFA',
+  },
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: '#94A3B8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioCircleActive: {
+    borderColor: '#0D9488',
+  },
+  radioInner: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: '#0D9488',
+  },
+  petitionTypeOptionText: {
+    fontSize: 12,
+    color: '#334155',
+    flex: 1,
+  },
+  petitionTypeOptionTextActive: {
+    color: '#0F766E',
+    fontWeight: '700',
+  },
+  fieldHelperText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  semSelectChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+    marginRight: 6,
+  },
+  semSelectChipActive: {
+    backgroundColor: '#0D9488',
+    borderColor: '#0D9488',
+  },
+  semSelectChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  semSelectChipTextActive: {
+    color: '#FFFFFF',
+  },
+  submitAoPetitionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#0D9488',
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginTop: 14,
+  },
+  submitAoPetitionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  applicantUsnStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDFA',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    gap: 8,
+  },
+  applicantUsnBadge: {
+    backgroundColor: '#0D9488',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  applicantUsnBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  applicantUsnValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F766E',
+  },
+  applicantUsnPolicy: {
+    fontSize: 10,
+    color: '#14B8A6',
+    fontStyle: 'italic',
+    flex: 1,
+    textAlign: 'right',
   },
 });
