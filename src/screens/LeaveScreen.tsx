@@ -1588,6 +1588,7 @@ const styles = StyleSheet.create({
   studentBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
     marginBottom: 2,
   },

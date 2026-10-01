@@ -283,7 +283,11 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
 
   return (
     <View style={styles.container}>
-      <Header profile={profile} onProfilePress={() => navigation.navigate('Profile')} />
+      <Header
+        profile={profile}
+        onProfilePress={() => navigation.navigate('Profile')}
+        onAdminPress={() => navigation.navigate('AdminPortal')}
+      />
 
       <ScrollView
         style={styles.scrollArea}

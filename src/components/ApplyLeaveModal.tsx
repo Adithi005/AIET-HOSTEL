@@ -392,7 +392,7 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
 
             {/* Dates & Days */}
             <View style={styles.rowFields}>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 120 }}>
                 <Text style={styles.fieldLabel}>Start Date</Text>
                 <View style={[styles.inputWithIcon, isDateBeforeMinimum && styles.inputWithIconError]}>
                   <Calendar size={16} color={isDateBeforeMinimum ? '#DC2626' : colors.textMuted} />
@@ -405,7 +405,7 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
                 </View>
               </View>
 
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 120 }}>
                 <Text style={styles.fieldLabel}>End Date</Text>
                 <View style={styles.inputWithIcon}>
                   <Calendar size={16} color={colors.textMuted} />
@@ -418,7 +418,7 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
                 </View>
               </View>
 
-              <View style={{ width: 80 }}>
+              <View style={{ width: 75, minWidth: 70 }}>
                 <Text style={styles.fieldLabel}>Days</Text>
                 <TextInput
                   style={styles.textInputDays}
@@ -825,6 +825,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginBottom: 16,
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
   },
   inputWithIcon: {
     flexDirection: 'row',
@@ -1087,9 +1089,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginBottom: 12,
+    flexWrap: 'wrap',
   },
   sessionCol: {
     flex: 1,
+    minWidth: 135,
   },
   sessionColLabel: {
     fontSize: 11,

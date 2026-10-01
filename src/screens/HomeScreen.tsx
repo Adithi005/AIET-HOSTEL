@@ -1025,6 +1025,7 @@ const styles = StyleSheet.create({
   metricValRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 6,
     marginTop: 2,
   },
@@ -1096,14 +1097,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
     marginBottom: 12,
   },
   leaveStatsCol: {
     flex: 1,
-    minWidth: 0,
-    marginRight: 10,
+    minWidth: 140,
+    marginRight: 6,
   },
   leaveCountLabel: {
     fontSize: 10,
@@ -1138,8 +1141,8 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   applyBtnCol: {
-    marginLeft: 4,
     flexShrink: 0,
+    minWidth: 140,
   },
   primaryApplyBtn: {
     backgroundColor: colors.primary,
@@ -1381,8 +1384,10 @@ const styles = StyleSheet.create({
   },
   outingHeaderRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
   },
   outingSectionTitle: {

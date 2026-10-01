@@ -405,24 +405,24 @@ export const ApplyOutingModal: React.FC<ApplyOutingModalProps> = ({
               ))}
             </View>
 
-            {/* Timings Row */}
-            <View style={styles.timingRow}>
-              {/* Out-Date */}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Selected Out Date</Text>
-                <View style={[styles.inputBox, !dateValidation.isValid && { borderColor: '#DC2626' }]}>
-                  <Calendar size={15} color={colors.primary} />
-                  <TextInput
-                    style={[styles.textInput, !dateValidation.isValid && { color: '#DC2626', fontWeight: '700' }]}
-                    value={outDate}
-                    onChangeText={setOutDate}
-                    placeholder="YYYY-MM-DD"
-                  />
-                </View>
+            {/* Out-Date */}
+            <View style={styles.formGroup}>
+              <Text style={styles.fieldLabel}>Selected Out Date</Text>
+              <View style={[styles.inputBox, !dateValidation.isValid && { borderColor: '#DC2626' }]}>
+                <Calendar size={15} color={colors.primary} />
+                <TextInput
+                  style={[styles.textInput, !dateValidation.isValid && { color: '#DC2626', fontWeight: '700' }]}
+                  value={outDate}
+                  onChangeText={setOutDate}
+                  placeholder="YYYY-MM-DD"
+                />
               </View>
+            </View>
 
+            {/* Timings Row (Out-Time & Return Curfew) */}
+            <View style={styles.timingRow}>
               {/* Out-Time */}
-              <View style={{ width: 115 }}>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.fieldLabel}>Out Time</Text>
                 <View style={styles.inputBox}>
                   <Clock size={15} color={colors.primary} />
@@ -436,7 +436,7 @@ export const ApplyOutingModal: React.FC<ApplyOutingModalProps> = ({
               </View>
 
               {/* In-Time (Curfew) */}
-              <View style={{ width: 115 }}>
+              <View style={{ flex: 1 }}>
                 <Text style={[styles.fieldLabel, { color: colors.dangerDark }]}>
                   Return (Curfew)
                 </Text>
@@ -619,6 +619,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
     lineHeight: 16,
+  },
+  formGroup: {
+    marginBottom: 10,
   },
   fieldLabel: {
     fontSize: 11,

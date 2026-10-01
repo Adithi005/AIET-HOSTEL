@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Shield, Bell } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
+import { Bell } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { UserProfile } from '../types';
 
@@ -19,6 +19,9 @@ export const Header: React.FC<HeaderProps> = ({
   onNotificationsPress,
   unreadNotificationCount,
 }) => {
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 380;
+
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
@@ -37,44 +40,35 @@ export const Header: React.FC<HeaderProps> = ({
           <View style={styles.brandTextWrap}>
             <Text style={styles.appName} numberOfLines={1}>AIETNEST</Text>
             <Text style={styles.tagline} numberOfLines={1} ellipsizeMode="tail">
-              A connected home for every AIET hosteller
+              {isSmallScreen ? 'Hostel Portal' : 'A connected home for every AIET hosteller'}
             </Text>
           </View>
         </TouchableOpacity>
 
         <View style={styles.rightActions}>
-          {onNotificationsPress && (
-            <TouchableOpacity
-              style={styles.bellButton}
-              onPress={onNotificationsPress}
-              activeOpacity={0.75}
-            >
-              <Bell size={19} color={colors.text} />
-              {(unreadNotificationCount ?? 0) > 0 && (
-                <View style={styles.bellBadge}>
-                  <Text style={styles.bellBadgeText}>
-                    {unreadNotificationCount! > 9 ? '9+' : unreadNotificationCount}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {profile && (
-            <TouchableOpacity
-              style={styles.usnChip}
-              onPress={onProfilePress}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.usnLabel}>USN</Text>
-              <Text style={styles.usnValue} numberOfLines={1}>{profile.usn}</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.bellButton}
+            onPress={onNotificationsPress}
+            activeOpacity={onNotificationsPress ? 0.75 : 0.9}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+          >
+            <Bell size={19} color={colors.text} />
+            {(unreadNotificationCount ?? 0) > 0 && (
+              <View style={styles.bellBadge}>
+                <Text style={styles.bellBadgeText}>
+                  {unreadNotificationCount! > 9 ? '9+' : unreadNotificationCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.avatarButton}
             onPress={onProfilePress}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Profile"
           >
             {profile?.avatarUri ? (
               <Image source={{ uri: profile.avatarUri }} style={styles.avatar} />
@@ -105,7 +99,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 12,
   },
   brandContainer: {
     flexDirection: 'row',
@@ -155,39 +149,19 @@ const styles = StyleSheet.create({
   rightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     flexShrink: 0,
-  },
-  usnChip: {
-    backgroundColor: colors.primarySubtle,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flexShrink: 0,
-  },
-  usnLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.primary,
-    textTransform: 'uppercase',
-  },
-  usnValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primaryDark,
   },
   avatarButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: colors.primaryLight,
+    backgroundColor: colors.primarySubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatar: {
     width: '100%',
@@ -206,22 +180,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   bellButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.background,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   bellBadge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
+    top: -3,
+    right: -3,
     backgroundColor: '#EF4444',
     borderRadius: 10,
-    minWidth: 16,
-    height: 16,
+    minWidth: 17,
+    height: 17,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
@@ -232,5 +208,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '800',
+    lineHeight: 11,
+    textAlign: 'center',
   },
 });

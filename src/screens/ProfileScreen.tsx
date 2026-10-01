@@ -359,7 +359,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
 
           {/* Hostel Block & Room */}
           <View style={styles.rowTwo}>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1.5 }}>
               <Text style={styles.fieldLabel}>Hostel Block</Text>
               <View style={styles.inputContainer}>
                 <Home size={16} color={colors.textSecondary} />
@@ -372,7 +372,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
               </View>
             </View>
 
-            <View style={{ width: 110 }}>
+            <View style={{ flex: 1, minWidth: 90 }}>
               <Text style={styles.fieldLabel}>Room No.</Text>
               <View style={styles.inputContainer}>
                 <TextInput

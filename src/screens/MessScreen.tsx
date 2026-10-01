@@ -125,6 +125,7 @@ export const MessScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <Header
         profile={profile}
         onProfilePress={() => navigation.navigate('Profile')}
+        onAdminPress={() => navigation.navigate('AdminPortal')}
       />
 
       <ScrollView
