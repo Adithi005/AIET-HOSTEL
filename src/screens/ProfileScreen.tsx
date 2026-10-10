@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
   Platform,
+  Vibration,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -484,25 +485,8 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
           </View>
         </View>
 
-        {/* Shortcuts for Admin Gate Portal & Documents */}
+        {/* Student Document Vault Shortcut */}
         <View style={styles.shortcutsContainer}>
-          <TouchableOpacity
-            style={styles.portalShortcutBtn}
-            onPress={() => navigation.navigate('AdminPortal')}
-            activeOpacity={0.85}
-          >
-            <View style={styles.portalShortcutLeft}>
-              <View style={[styles.portalShortcutIcon, { backgroundColor: '#FEF3C7' }]}>
-                <ShieldAlert size={18} color="#B45309" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.portalShortcutTitle}>Hostel Admin & Security Gate Portal</Text>
-                <Text style={styles.portalShortcutSub}>Terminal barcode scanning, approvals & device resets</Text>
-              </View>
-            </View>
-            <ChevronRight size={16} color={colors.textSecondary} />
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.portalShortcutBtn}
             onPress={() => navigation.navigate('Documents')}

@@ -1,5 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  useWindowDimensions,
+  Vibration,
+  Platform,
+} from 'react-native';
 import { Bell } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { UserProfile } from '../types';
@@ -8,6 +17,7 @@ interface HeaderProps {
   profile: UserProfile | null;
   onProfilePress?: () => void;
   onAdminPress?: () => void;
+  onAdminLongPress?: () => void;
   onNotificationsPress?: () => void;
   unreadNotificationCount?: number;
 }
@@ -16,19 +26,38 @@ export const Header: React.FC<HeaderProps> = ({
   profile,
   onProfilePress,
   onAdminPress,
+  onAdminLongPress,
   onNotificationsPress,
   unreadNotificationCount,
 }) => {
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 380;
 
+  const handleAdminLongPress = () => {
+    const handler = onAdminLongPress || onAdminPress;
+    if (handler) {
+      if (Platform.OS !== 'web') {
+        try {
+          Vibration.vibrate(60);
+        } catch {
+          // Ignore vibration failures on unsupported devices
+        }
+      }
+      handler();
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
         <TouchableOpacity
           style={styles.brandContainer}
-          onPress={onAdminPress}
-          activeOpacity={onAdminPress ? 0.75 : 1}
+          onLongPress={handleAdminLongPress}
+          delayLongPress={700}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="AIETNEST Hostel Portal"
+          accessibilityHint="Long press for admin dashboard access"
         >
           <View style={styles.logoBadge}>
             <Image
