@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   ActivityIndicator,
   SafeAreaView,
+  Vibration,
 } from 'react-native';
 import {
   Shield,
