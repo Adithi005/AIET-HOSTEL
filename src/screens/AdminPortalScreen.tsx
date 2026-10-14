@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Vibration,
+  useWindowDimensions,
 } from 'react-native';
 import {
   Shield,
@@ -158,6 +159,9 @@ export const renderRoleIcon = (role: AdminRole, size = 18, color = '#FFFFFF') =>
 };
 
 export const AdminPortalScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 390;
+
   // Selected Official Desk (null = Independent Gateway Selection Screen)
   const [selectedRole, setSelectedRole] = useState<AdminRole | null>(null);
   const [authenticatedRole, setAuthenticatedRole] = useState<AdminRole | null>(null);
@@ -922,13 +926,13 @@ Official signed allotment record has been certified.`
           activeOpacity={0.7}
         >
           <ChevronLeft size={18} color="#1E293B" />
-          <Text style={styles.backBtnText}>Lock & Switch Desk</Text>
+          <Text style={styles.backBtnText}>{isSmallScreen ? 'Switch' : 'Switch Desk'}</Text>
         </TouchableOpacity>
 
         <View style={styles.officerPill}>
           <View style={[styles.roleBadgeDot, { backgroundColor: currentOfficer.color }]} />
           <Text style={styles.officerName} numberOfLines={1}>
-            {currentOfficer.adminName} ({selectedRole})
+            {isSmallScreen ? `${currentOfficer.adminName.split(' ')[0]} (${selectedRole})` : `${currentOfficer.adminName} (${selectedRole})`}
           </Text>
         </View>
 
@@ -946,7 +950,12 @@ Official signed allotment record has been certified.`
       </View>
 
       {/* Desk-Specific Non-Interconnected Metrics */}
-      <View style={styles.kpiRow}>
+      <View style={styles.kpiContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.kpiRow}
+        >
         {selectedRole === 'Warden' && (
           <>
             <View style={styles.kpiCard}>
@@ -1046,6 +1055,7 @@ Official signed allotment record has been certified.`
             </View>
           </>
         )}
+        </ScrollView>
       </View>
 
       {/* Main Content Area for Selected Desk */}
@@ -1059,7 +1069,12 @@ Official signed allotment record has been certified.`
            ======================================================== */}
         {selectedRole === 'Warden' && (
           <View style={styles.viewSection}>
-            <View style={styles.subTabsStrip}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.subTabsScrollView}
+              contentContainerStyle={styles.subTabsStrip}
+            >
               <TouchableOpacity
                 style={[styles.subTabItem, wardenTab === 'leaves' && styles.subTabItemActive]}
                 onPress={() => setWardenTab('leaves')}
@@ -1092,7 +1107,7 @@ Official signed allotment record has been certified.`
                   Allotment & TAT
                 </Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
 
             {/* Warden: Leaves */}
             {wardenTab === 'leaves' && (
@@ -1349,7 +1364,12 @@ Official signed allotment record has been certified.`
            ======================================================== */}
         {selectedRole === 'SWO' && (
           <View style={styles.viewSection}>
-            <View style={styles.subTabsStrip}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.subTabsScrollView}
+              contentContainerStyle={styles.subTabsStrip}
+            >
               <TouchableOpacity
                 style={[styles.subTabItem, swoTab === 'leaves' && styles.subTabItemActive]}
                 onPress={() => setSwoTab('leaves')}
@@ -1382,7 +1402,7 @@ Official signed allotment record has been certified.`
                   Staff Allotment & TAT
                 </Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
 
             {/* SWO: Leaves */}
             {swoTab === 'leaves' && (
@@ -1604,7 +1624,12 @@ Official signed allotment record has been certified.`
            ======================================================== */}
         {selectedRole === 'HOD' && (
           <View style={styles.viewSection}>
-            <View style={styles.subTabsStrip}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.subTabsScrollView}
+              contentContainerStyle={styles.subTabsStrip}
+            >
               <TouchableOpacity
                 style={[styles.subTabItem, hodTab === 'leaves' && styles.subTabItemActive]}
                 onPress={() => setHodTab('leaves')}
@@ -1629,7 +1654,7 @@ Official signed allotment record has been certified.`
                   Academic Performance
                 </Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
 
             {/* HOD Leaves */}
             {hodTab === 'leaves' && (
@@ -1808,7 +1833,12 @@ Official signed allotment record has been certified.`
            ======================================================== */}
         {selectedRole === 'AO' && (
           <View style={styles.viewSection}>
-            <View style={styles.subTabsStrip}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.subTabsScrollView}
+              contentContainerStyle={styles.subTabsStrip}
+            >
               <TouchableOpacity
                 style={[styles.subTabItem, aoTab === 'directory' && styles.subTabItemActive]}
                 onPress={() => setAoTab('directory')}
@@ -1849,7 +1879,7 @@ Official signed allotment record has been certified.`
                   Gate TAT & Stats
                 </Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
 
             {/* AO: Directory & Full USN Search Dossier */}
             {aoTab === 'directory' && (
@@ -2797,30 +2827,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+    gap: 8,
   },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
   },
   backBtnText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#1E293B',
   },
   officerPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 20,
+    flexShrink: 1,
+    minWidth: 0,
   },
   gatewayTopTitleWrap: {
     flexDirection: 'row',
@@ -2895,6 +2930,11 @@ const styles = StyleSheet.create({
   },
 
   // KPI Row
+  kpiContainer: {
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
   kpiRow: {
     flexDirection: 'row',
     paddingHorizontal: 12,
@@ -2902,14 +2942,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   kpiCard: {
-    flex: 1,
+    minWidth: 84,
     backgroundColor: '#FFFFFF',
     paddingVertical: 10,
-    paddingHorizontal: 6,
+    paddingHorizontal: 10,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
   },
   kpiValue: {
     fontSize: 18,
@@ -2937,6 +2983,9 @@ const styles = StyleSheet.create({
   },
 
   // Sub-tabs Strip
+  subTabsScrollView: {
+    marginBottom: 2,
+  },
   subTabsStrip: {
     flexDirection: 'row',
     backgroundColor: '#E2E8F0',
@@ -2945,9 +2994,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   subTabItem: {
-    flex: 1,
     paddingVertical: 7,
+    paddingHorizontal: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 6,
   },
   subTabItemActive: {
@@ -3364,13 +3414,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
-    padding: 20,
+    alignItems: 'center',
+    padding: 16,
   },
   modalCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 18,
     gap: 8,
+    width: '100%',
+    maxWidth: 520,
+    maxHeight: '90%',
   },
   modalTitle: {
     fontSize: 16,
