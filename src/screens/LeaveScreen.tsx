@@ -108,13 +108,6 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
   const leavesTaken = profile?.leavesCount || 0;
   const escalation = getLeaveEscalationInfo(leavesTaken);
 
-  // Quick helper to test approval & instant token generation on pending leaves
-  const handleSimulateApprove = async (leaveId: string) => {
-    await StorageService.approveLeave(leaveId);
-    await loadData();
-    Alert.alert('Leave Approved', 'Gate Pass Token generated successfully.');
-  };
-
   const handleGateExit = async (outingId: string) => {
     await StorageService.markOutingExited(outingId);
     await loadData();
@@ -703,12 +696,6 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
                       <Text style={styles.pendingHint}>
                         Awaiting {leave.requiredApprover} sanction
                       </Text>
-                      <TouchableOpacity
-                        style={styles.quickApproveBtn}
-                        onPress={() => handleSimulateApprove(leave.id)}
-                      >
-                        <Text style={styles.quickApproveText}>Simulate Approval</Text>
-                      </TouchableOpacity>
                     </View>
                   )}
                 </View>

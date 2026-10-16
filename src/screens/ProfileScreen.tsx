@@ -197,11 +197,6 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
     );
   };
 
-  const handleSimulate2ndDevice = () => {
-    const result = StorageService.simulateSecondaryDeviceLogin('Apple iPhone 15 Pro');
-    Alert.alert('⛔ Single Device Policy Enforced', result.message);
-  };
-
   const handleRequestDeviceReset = async () => {
     const res = await StorageService.requestAdminDeviceReset(
       profile?.usn || '1RV22CS089',
@@ -479,17 +474,6 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
             >
               <Shield size={14} color="#0D9488" />
               <Text style={styles.verifyDeviceBtnText}>Verify Authorized Primary Device</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.simulateBlockBtn}
-              onPress={handleSimulate2ndDevice}
-              activeOpacity={0.8}
-            >
-              <AlertTriangle size={14} color="#B45309" />
-              <Text style={styles.simulateBlockBtnText}>
-                Simulate 2nd Device Login Attempt (iPhone 15 Pro)
-              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity

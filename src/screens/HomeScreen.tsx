@@ -103,16 +103,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const leavesTaken = profile?.leavesCount || 0;
   const escalation = getLeaveEscalationInfo(leavesTaken);
 
-  // Quick simulation switcher for escalation policy
-  const handleSimulateLeaves = async (count: number) => {
-    const updated = await StorageService.setLeaveCountForTesting(count);
-    setProfile(updated);
-    Alert.alert(
-      'Leave Count Updated',
-      `Leave count set to ${count}. Open Apply Leave to see the approval tier.`
-    );
-  };
-
   // Find latest active approved leave with gate token (not closed/returned)
   const latestApprovedLeave = myLeaves.find(
     (l) => l.status === 'Approved' && l.gateToken && !l.checkInTime
@@ -176,33 +166,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Single Device Policy & Admin Management Strip */}
-        <TouchableOpacity
-          style={styles.deviceSecurityStrip}
-          onPress={() => navigation.navigate('Profile')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.deviceSecurityLeft}>
-            <ShieldCheck size={16} color="#0D9488" />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={styles.deviceSecurityTitle} numberOfLines={1}>Single-Device Policy Active</Text>
-              <Text style={styles.deviceSecuritySub} numberOfLines={1} ellipsizeMode="tail">
-                Bound to {profile?.deviceModel || 'Samsung Galaxy S23'} • Handled by Admin
-              </Text>
-            </View>
-          </View>
-          <View style={styles.singleDeviceTag}>
-            <Text style={styles.singleDeviceTagText}>1 Device Only</Text>
-          </View>
-        </TouchableOpacity>
-
         {/* Main Sections: 2-Column Responsive Dashboard on Laptop/Desktop, Sequential on Mobile */}
         {(() => {
           const renderAcademicSection = () => (
             <View style={{ marginBottom: 16 }}>
               <View style={styles.sectionHeadingRow}>
                 <GraduationCap size={16} color={colors.primary} />
-                <Text style={styles.sectionHeadingText}>IA & Attendance Update (Sem {currentSem?.semester || 5})</Text>
+                <Text style={styles.sectionHeadingText}>Academic Status (Sem {currentSem?.semester || 5})</Text>
               </View>
 
               <View style={styles.card}>
@@ -236,7 +206,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                         </Text>
                       </View>
                     </View>
-                    <Text style={styles.metricNote}>Min 75% required</Text>
+                    <Text style={styles.metricNote}>Min 75% required for exams</Text>
                   </View>
 
                   <View style={styles.divider} />
@@ -250,35 +220,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                       </Text>
                       <Text style={styles.metricOutOf}>/ 30</Text>
                     </View>
-                    <Text style={styles.metricNote}>IA-1 & IA-2 recorded</Text>
+                    <Text style={styles.metricNote}>Consistent performance</Text>
                   </View>
                 </View>
 
-                {/* Simple Subject Quick View */}
-                <View style={styles.subjectList}>
-                  {currentSem?.subjects.slice(0, 3).map((sub) => (
-                    <View key={sub.code} style={styles.subjectRow}>
-                      <Text style={styles.subjectName} numberOfLines={1}>
-                        {sub.name}
-                      </Text>
-                      <View style={styles.subjectNumbers}>
-                        <Text style={styles.iaScoreText}>IA: {sub.ia2}/30</Text>
-                        <Text
-                          style={[
-                            styles.attPercentText,
-                            {
-                              color:
-                                sub.attendancePercentage >= 75
-                                  ? colors.successDark
-                                  : colors.danger,
-                            },
-                          ]}
-                        >
-                          {sub.attendancePercentage}%
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
+                {/* Clean Attendance Progress Bar */}
+                <View style={styles.attendanceBarContainer}>
+                  <View
+                    style={[
+                      styles.attendanceBarFill,
+                      {
+                        width: `${Math.min(100, currentSem?.overallAttendance || 87.2)}%`,
+                        backgroundColor:
+                          (currentSem?.overallAttendance || 0) >= 75
+                            ? colors.successDark
+                            : colors.danger,
+                      },
+                    ]}
+                  />
                 </View>
               </View>
             </View>
@@ -631,112 +590,78 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </View>
           );
 
-          const renderAlertsAndSimBar = () => (
-            <View style={{ marginBottom: 16 }}>
-              {escalation.isExpiredLimit && (
-                <View style={styles.alertCard}>
-                  <AlertTriangle size={16} color="#991B1B" />
+          const renderAlertsSection = () => {
+            if (!escalation.isExpiredLimit) return null;
+            return (
+              <View style={{ marginBottom: 16 }}>
+                <View
+                  style={styles.alertCard}
+                  accessible={true}
+                  accessibilityRole="alert"
+                  accessibilityLabel="Leave limit expired. Further leave requires medical document and Principal approval."
+                >
+                  <AlertTriangle size={18} color="#991B1B" />
                   <Text style={styles.alertCardText}>
-                    Limitation of leave is expired! Further leave requires medical document and Principal approval.
+                    Limitation of leave is expired. Further leave requires medical document and Principal approval.
                   </Text>
                 </View>
-              )}
-
-              <View style={styles.simBar}>
-                <Text style={styles.simBarLabel}>Simulate Leaves for Testing:</Text>
-                <View style={styles.simButtonsRow}>
-                  <TouchableOpacity
-                    style={[styles.simButton, leavesTaken === 3 && styles.simActive]}
-                    onPress={() => handleSimulateLeaves(3)}
-                  >
-                    <Text style={styles.simText}>3 (Warden)</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.simButton, leavesTaken === 6 && styles.simActive]}
-                    onPress={() => handleSimulateLeaves(6)}
-                  >
-                    <Text style={styles.simText}>6 (SWO)</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.simButton, leavesTaken === 9 && styles.simActive]}
-                    onPress={() => handleSimulateLeaves(9)}
-                  >
-                    <Text style={styles.simText}>9 (HOD/AO)</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.simButton, leavesTaken === 11 && styles.simActiveDanger]}
-                    onPress={() => handleSimulateLeaves(11)}
-                  >
-                    <Text style={[styles.simText, leavesTaken === 11 && { color: '#FFF' }]}>
-                      11 (&gt;10 Expired)
-                    </Text>
-                  </TouchableOpacity>
-                </View>
               </View>
-            </View>
-          );
-
-          const renderVehicleTransitSection = () => (
-            <View style={{ marginBottom: 16 }}>
-              <TouchableOpacity
-                style={styles.vehicleTransitCard}
-                onPress={() => navigation.navigate('GrievanceTab', { initialTab: 'vehicles' })}
-                activeOpacity={0.88}
-              >
-                <View style={styles.vehicleTransitHeader}>
-                  <View style={styles.vehicleTransitIconWrap}>
-                    <Bus size={18} color="#0D9488" />
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.vehicleTransitTitle}>Hostel Care • Vehicle Booking</Text>
-                    <Text style={styles.vehicleTransitSub} numberOfLines={1}>
-                      Eco • TT • Mini Bus • Bus | Book ≥15m before departure
-                    </Text>
-                  </View>
-                  <ArrowRight size={16} color="#0D9488" />
-                </View>
-
-                <View style={styles.vehicleStatsGrid}>
-                  <View style={styles.vehicleStatBox}>
-                    <Text style={styles.vehicleStatNum}>{vehicleStats.vidyagiriTotal}</Text>
-                    <Text style={styles.vehicleStatLabel}>Going Vidyagiri</Text>
-                  </View>
-                  <View style={styles.vehicleStatDivider} />
-                  <View style={styles.vehicleStatBox}>
-                    <Text style={[styles.vehicleStatNum, { color: '#DC2626' }]}>{vehicleStats.healthCenterTotal}</Text>
-                    <Text style={styles.vehicleStatLabel}>Health Center Care</Text>
-                  </View>
-                  <View style={styles.vehicleStatDivider} />
-                  <View style={styles.vehicleStatBox}>
-                    <Text style={[styles.vehicleStatNum, { color: colors.primary }]}>{vehicleStats.totalBooked}</Text>
-                    <Text style={styles.vehicleStatLabel}>Total In Transit</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </View>
-          );
+            );
+          };
 
           const renderShortcutsSection = () => (
-            <View style={styles.shortcutsRow}>
-              <TouchableOpacity
-                style={styles.shortcutCard}
-                onPress={() => navigation.navigate('MessTab')}
-                activeOpacity={0.85}
-              >
-                <Utensils size={18} color="#D97706" />
-                <Text style={styles.shortcutTitle}>Today's Mess</Text>
-                <Text style={styles.shortcutSub}>View Meals & Review</Text>
-              </TouchableOpacity>
+            <View style={{ marginBottom: 16 }}>
+              <View style={styles.sectionHeadingRow}>
+                <Sparkles size={16} color={colors.primary} />
+                <Text style={styles.sectionHeadingText}>Campus Services</Text>
+              </View>
 
-              <TouchableOpacity
-                style={styles.shortcutCard}
-                onPress={() => navigation.navigate('GrievanceTab', { initialTab: 'maintenance' })}
-                activeOpacity={0.85}
-              >
-                <Wrench size={18} color={colors.primary} />
-                <Text style={styles.shortcutTitle}>Hostel Care</Text>
-                <Text style={styles.shortcutSub}>Room Maintenance</Text>
-              </TouchableOpacity>
+              <View style={styles.shortcutsRow}>
+                <TouchableOpacity
+                  style={styles.shortcutCard}
+                  onPress={() => navigation.navigate('MessTab')}
+                  activeOpacity={0.85}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="Today's Mess. View daily meals and submit reviews."
+                >
+                  <View style={[styles.shortcutIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                    <Utensils size={18} color="#D97706" />
+                  </View>
+                  <Text style={styles.shortcutTitle}>Today's Mess</Text>
+                  <Text style={styles.shortcutSub}>Meals & Reviews</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.shortcutCard}
+                  onPress={() => navigation.navigate('GrievanceTab', { initialTab: 'maintenance' })}
+                  activeOpacity={0.85}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="Hostel Care. Maintenance and room repair tickets."
+                >
+                  <View style={[styles.shortcutIconCircle, { backgroundColor: '#EEF2FF' }]}>
+                    <Wrench size={18} color={colors.primary} />
+                  </View>
+                  <Text style={styles.shortcutTitle}>Hostel Care</Text>
+                  <Text style={styles.shortcutSub}>Room Repairs</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.shortcutCard}
+                  onPress={() => navigation.navigate('GrievanceTab', { initialTab: 'vehicles' })}
+                  activeOpacity={0.85}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="Campus Transit. Book shuttle vehicles to Vidyagiri and Health Center."
+                >
+                  <View style={[styles.shortcutIconCircle, { backgroundColor: '#CCFBF1' }]}>
+                    <Bus size={18} color="#0D9488" />
+                  </View>
+                  <Text style={styles.shortcutTitle}>Transit</Text>
+                  <Text style={styles.shortcutSub}>Campus Shuttles</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           );
 
@@ -744,14 +669,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             return (
               <View style={styles.desktopColumnsRow}>
                 <View style={styles.desktopColLeft}>
-                  {renderAcademicSection()}
-                  {renderVehicleTransitSection()}
-                  {renderShortcutsSection()}
-                </View>
-                <View style={styles.desktopColRight}>
                   {renderLeaveSection()}
                   {renderOutingSection()}
-                  {renderAlertsAndSimBar()}
+                </View>
+                <View style={styles.desktopColRight}>
+                  {renderAcademicSection()}
+                  {renderShortcutsSection()}
+                  {renderAlertsSection()}
                 </View>
               </View>
             );
@@ -759,12 +683,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
           return (
             <>
-              {renderAcademicSection()}
               {renderLeaveSection()}
               {renderOutingSection()}
-              {renderAlertsAndSimBar()}
-              {renderVehicleTransitSection()}
+              {renderAcademicSection()}
               {renderShortcutsSection()}
+              {renderAlertsSection()}
             </>
           );
         })()}
@@ -1303,6 +1226,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
   },
+  attendanceBarContainer: {
+    height: 6,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    marginTop: 12,
+    overflow: 'hidden',
+  },
+  attendanceBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
   shortcutsRow: {
     flexDirection: 'row',
     gap: 10,
@@ -1310,21 +1244,30 @@ const styles = StyleSheet.create({
   shortcutCard: {
     flex: 1,
     backgroundColor: colors.surfaceCard,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 12,
     borderWidth: 1,
     borderColor: colors.border,
+    minHeight: 104,
+    justifyContent: 'space-between',
+  },
+  shortcutIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
   },
   shortcutTitle: {
     fontSize: 13,
     fontWeight: '700',
     color: colors.text,
-    marginTop: 6,
   },
   shortcutSub: {
     fontSize: 10,
     color: colors.textSecondary,
-    marginTop: 1,
+    marginTop: 2,
   },
   deviceSecurityStrip: {
     backgroundColor: '#F0FDFA',
