@@ -134,6 +134,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     }
   };
 
+  const handleApplyOuting = () => {
+    if (profile?.isOutingBlocked) {
+      Alert.alert(
+        '⛔ Outings Blocked: Pending SWO Clearance',
+        `${profile.outingBlockReason || 'Past late return curfew breach'}.\n\nYour subsequent outings are suspended. Please report to the Student Welfare Officer (SWO) for clearance.`,
+        [
+          { text: 'View Disciplinary Notice', onPress: () => setIsNotifModalVisible(true) },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+    setIsOutingModalVisible(true);
+  };
+
   return (
     <View style={styles.container}>
       <Header
@@ -150,23 +165,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Outing Suspended Disciplinary Warning Card */}
-        {profile?.isOutingBlocked && (
-          <TouchableOpacity
-            style={styles.homeDisciplinaryAlert}
-            onPress={() => setIsNotifModalVisible(true)}
-            activeOpacity={0.85}
-          >
-            <ShieldAlert size={20} color="#DC2626" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.homeDisciplinaryTitle}>⛔ Outings Blocked: Pending SWO Clearance</Text>
-              <Text style={styles.homeDisciplinarySub}>
-                {profile.outingBlockReason || 'Past late return curfew breach'}. Tap to view disciplinary notice.
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
         {/* Welcome Header */}
         <View style={styles.welcomeBar}>
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -397,7 +395,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
                   <TouchableOpacity
                     style={styles.outingApplyBtn}
-                    onPress={() => setIsOutingModalVisible(true)}
+                    onPress={handleApplyOuting}
                     activeOpacity={0.85}
                   >
                     <Plus size={15} color="#FFFFFF" />

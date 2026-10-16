@@ -10,6 +10,9 @@ import {
   Alert,
   Platform,
   Vibration,
+  Modal,
+  ActivityIndicator,
+  Pressable,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -31,6 +34,10 @@ import {
   ShieldAlert,
   FileText,
   ChevronRight,
+  Image as ImageIcon,
+  Trash2,
+  X,
+  Upload,
 } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { colors } from '../theme/colors';
@@ -64,13 +71,71 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
     });
   }, []);
 
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const applyNewAvatar = async (newUri: string | undefined) => {
+    try {
+      setIsUploadingPhoto(true);
+      setAvatarUri(newUri);
+      if (profile) {
+        const updated = { ...profile, avatarUri: newUri };
+        setProfile(updated);
+        await StorageService.updateProfile(updated);
+      }
+      if (newUri) {
+        Alert.alert('Photo Updated', 'Your profile photo has been updated.');
+      } else {
+        Alert.alert('Photo Removed', 'Your profile photo has been removed.');
+      }
+    } catch (err) {
+      console.warn('Error saving photo', err);
+      Alert.alert('Error', 'Could not save photo. Please try again.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handlePickFromWeb = () => {
+    if (typeof document === 'undefined') return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e: any) => {
+      const file = e.target?.files?.[0];
+      if (file) {
+        setIsUploadingPhoto(true);
+        const reader = new FileReader();
+        reader.onload = (uploadEvent) => {
+          const dataUrl = uploadEvent.target?.result as string;
+          if (dataUrl) {
+            applyNewAvatar(dataUrl);
+          } else {
+            setIsUploadingPhoto(false);
+          }
+        };
+        reader.onerror = () => {
+          setIsUploadingPhoto(false);
+          Alert.alert('Error', 'Could not read image file.');
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  // Simple & direct gallery picker
   const pickFromGallery = async () => {
+    if (Platform.OS === 'web') {
+      handlePickFromWeb();
+      return;
+    }
+
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (permission.granted === false) {
         Alert.alert(
-          'Gallery Access Required',
-          'Please allow photo library permission to choose your profile photo from your album.'
+          'Permission Needed',
+          'Please allow photo library access to choose a profile photo.'
         );
         return;
       }
@@ -80,76 +145,22 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newUri = result.assets[0].uri;
-        setAvatarUri(newUri);
-        if (profile) {
-          const updated = { ...profile, avatarUri: newUri };
-          setProfile(updated);
-          await StorageService.updateProfile(updated);
-          Alert.alert('Profile Photo Updated', 'Your profile photo has been updated from your album.');
-        }
+        const asset = result.assets[0];
+        const newUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        await applyNewAvatar(newUri);
       }
     } catch (err) {
       console.warn('Gallery pick error', err);
-      Alert.alert('Gallery Error', 'Could not access photo gallery.');
+      Alert.alert('Error', 'Could not open photo gallery.');
     }
   };
 
-  const takeWithCamera = async () => {
-    try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (permission.granted === false) {
-        Alert.alert(
-          'Camera Access Required',
-          'Please allow camera permission to capture your student profile photo.'
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newUri = result.assets[0].uri;
-        setAvatarUri(newUri);
-        if (profile) {
-          const updated = { ...profile, avatarUri: newUri };
-          setProfile(updated);
-          await StorageService.updateProfile(updated);
-          Alert.alert('Profile Photo Updated', 'Your profile photo has been updated from camera capture.');
-        }
-      }
-    } catch (err) {
-      console.warn('Camera error', err);
-      Alert.alert('Camera Error', 'Could not open camera on this device.');
-    }
-  };
-
-  const handleChangePhoto = () => {
-    Alert.alert(
-      'Profile Photo Options',
-      'Select how you want to update your institutional profile photo:',
-      [
-        {
-          text: '🖼️ Choose from Gallery / Album',
-          onPress: pickFromGallery,
-        },
-        {
-          text: '📷 Take Photo with Camera',
-          onPress: takeWithCamera,
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ]
-    );
+  const handleRemovePhoto = async () => {
+    await applyNewAvatar(undefined);
   };
 
   const handleSaveProfile = async () => {
@@ -221,7 +232,13 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
       >
         {/* Avatar Card */}
         <View style={styles.avatarCard}>
-          <View style={styles.avatarWrapper}>
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            onPress={pickFromGallery}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Change profile photo"
+          >
             {avatarUri ? (
               <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
             ) : (
@@ -229,23 +246,38 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                 <Text style={styles.avatarInitial}>{name.charAt(0) || 'S'}</Text>
               </View>
             )}
+            <View style={styles.cameraIconBtn}>
+              <Camera size={14} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.avatarActionsRow}>
             <TouchableOpacity
-              style={styles.cameraIconBtn}
-              onPress={handleChangePhoto}
+              style={styles.changePhotoBtn}
+              onPress={pickFromGallery}
               activeOpacity={0.8}
             >
-              <Camera size={14} color="#FFFFFF" />
+              {isUploadingPhoto ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Camera size={13} color={colors.primary} />
+              )}
+              <Text style={styles.changePhotoBtnText}>
+                {isUploadingPhoto ? 'Uploading...' : 'Change Photo'}
+              </Text>
             </TouchableOpacity>
-          </View>
 
-          <TouchableOpacity
-            style={styles.changePhotoBtn}
-            onPress={handleChangePhoto}
-            activeOpacity={0.8}
-          >
-            <Camera size={13} color={colors.primary} />
-            <Text style={styles.changePhotoBtnText}>Update Photo (Gallery / Camera)</Text>
-          </TouchableOpacity>
+            {avatarUri ? (
+              <TouchableOpacity
+                style={styles.removePhotoSmallBtn}
+                onPress={handleRemovePhoto}
+                activeOpacity={0.8}
+              >
+                <Trash2 size={12} color="#DC2626" />
+                <Text style={styles.removePhotoSmallText}>Remove</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
           <Text style={styles.profileName}>{name || 'Student Name'}</Text>
           <Text style={styles.profileBranch}>{branch || 'Department'}</Text>
@@ -938,5 +970,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: colors.textSecondary,
+  },
+  avatarActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  removePhotoSmallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  removePhotoSmallText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
   },
 });

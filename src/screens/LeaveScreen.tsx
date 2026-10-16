@@ -131,6 +131,21 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
     }
   };
 
+  const handleApplyOuting = () => {
+    if (profile?.isOutingBlocked) {
+      Alert.alert(
+        '⛔ Outings Blocked: Pending SWO Clearance',
+        `${profile.outingBlockReason || 'Past late return curfew violation'}.\n\nYour subsequent outings are suspended. Please report to the Student Welfare Officer (SWO) for clearance.`,
+        [
+          { text: 'View Disciplinary Notice', onPress: () => setIsNotifModalVisible(true) },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+    setIsOutingModalVisible(true);
+  };
+
   return (
     <View style={styles.container}>
       <Header
@@ -147,20 +162,6 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Outing Suspended Disciplinary Banner */}
-        {profile?.isOutingBlocked && (
-          <View style={styles.disciplinaryBlockBanner}>
-            <ShieldAlert size={22} color="#DC2626" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.disciplinaryBlockTitle}>⛔ Next Outing Blocked by SWO</Text>
-              <Text style={styles.disciplinaryBlockText}>
-                {profile.outingBlockReason || 'Late return curfew violation'}.
-                {'\n'}Your subsequent outings are suspended. Please report to the Student Welfare Officer (SWO) for clearance.
-              </Text>
-            </View>
-          </View>
-        )}
-
         {/* Student History Header Card */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
@@ -180,7 +181,7 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
               style={styles.applyBtn}
               onPress={() => {
                 if (activeTab === 'outings') {
-                  setIsOutingModalVisible(true);
+                  handleApplyOuting();
                 } else if (activeTab === 'leaves') {
                   setIsApplyModalVisible(true);
                 } else {
@@ -312,7 +313,7 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
               </View>
               <TouchableOpacity
                 style={styles.applyBtn}
-                onPress={() => setIsOutingModalVisible(true)}
+                onPress={handleApplyOuting}
                 activeOpacity={0.85}
               >
                 <Plus size={15} color="#FFFFFF" />
@@ -329,7 +330,7 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
                 </Text>
                 <TouchableOpacity
                   style={styles.emptyApplyBtn}
-                  onPress={() => setIsOutingModalVisible(true)}
+                  onPress={handleApplyOuting}
                   activeOpacity={0.85}
                 >
                   <Plus size={14} color="#FFFFFF" />

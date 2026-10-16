@@ -17,6 +17,7 @@ import {
   Calendar,
   Compass,
   AlertCircle,
+  ShieldAlert,
   CheckCircle2,
   ShieldCheck,
   QrCode,
@@ -201,12 +202,11 @@ export const ApplyOutingModal: React.FC<ApplyOutingModalProps> = ({
             {/* Outing Suspended Disciplinary Notice */}
             {profile?.isOutingBlocked && (
               <View style={styles.blockedAlertCard}>
-                <AlertCircle size={20} color="#EF4444" />
+                <ShieldAlert size={20} color="#DC2626" />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.blockedAlertTitle}>Outing Privileges Suspended</Text>
+                  <Text style={styles.blockedAlertTitle}>⛔ Outings Blocked: Pending SWO Clearance</Text>
                   <Text style={styles.blockedAlertText}>
-                    {profile.outingBlockReason || 'Past late return curfew breach'}.
-                    {'\n'}Please contact the Student Welfare Officer (SWO) for clearance.
+                    {profile.outingBlockReason || 'Past late return curfew breach'}. SWO clearance required before new outings can be applied.
                   </Text>
                 </View>
               </View>

@@ -835,7 +835,6 @@ export const INITIAL_GRIEVANCES: GrievanceTicket[] = [
     urgency: 'Medium',
     status: 'In Progress',
     createdAt: '2024-10-16 09:30',
-    photoUri: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=500&auto=format&fit=crop&q=80',
     adminRemark: 'Housekeeping staff (Ramesh) assigned for 2:30 PM slot.',
   },
   {
@@ -858,7 +857,6 @@ export const INITIAL_GRIEVANCES: GrievanceTicket[] = [
     urgency: 'High',
     status: 'Submitted',
     createdAt: '2024-10-18 11:20',
-    photoUri: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&auto=format&fit=crop&q=80',
     adminRemark: 'Awaiting plumber assignment.',
   },
   {
@@ -1580,7 +1578,22 @@ export const StorageService = {
   async getGrievances(): Promise<GrievanceTicket[]> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.GRIEVANCES);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const parsed: GrievanceTicket[] = JSON.parse(data);
+        let changed = false;
+        const cleaned = parsed.map((t) => {
+          if (t.photoUri && (t.photoUri.includes('unsplash.com') || t.photoUri.includes('photo-1581578731548') || t.photoUri.includes('photo-1584622650111'))) {
+            changed = true;
+            const { photoUri, ...rest } = t;
+            return rest as GrievanceTicket;
+          }
+          return t;
+        });
+        if (changed) {
+          await AsyncStorage.setItem(STORAGE_KEYS.GRIEVANCES, JSON.stringify(cleaned));
+        }
+        return cleaned;
+      }
       await AsyncStorage.setItem(STORAGE_KEYS.GRIEVANCES, JSON.stringify(INITIAL_GRIEVANCES));
       return INITIAL_GRIEVANCES;
     } catch {
