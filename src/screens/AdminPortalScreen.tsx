@@ -12,10 +12,11 @@ import {
   Platform,
   KeyboardAvoidingView,
   ActivityIndicator,
-  SafeAreaView,
   Vibration,
   useWindowDimensions,
+  ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Shield,
   CheckCircle2,
@@ -55,6 +56,7 @@ import {
   HeartPulse,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { ANDROID_INPUT_FIX, ICON_HIT_SLOP, KBV_BEHAVIOR, MONO_FONT } from '../theme/layout';
 import {
   LeaveApplication,
   GrievanceTicket,
@@ -158,7 +160,32 @@ export const renderRoleIcon = (role: AdminRole, size = 18, color = '#FFFFFF') =>
   }
 };
 
+const AdminDialogModal: React.FC<{
+  visible: boolean;
+  onClose: () => void;
+  bottomInset: number;
+  cardStyle?: ViewStyle;
+  children: React.ReactNode;
+}> = ({ visible, onClose, bottomInset, cardStyle, children }) => (
+  <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <KeyboardAvoidingView style={styles.modalOverlay} behavior={KBV_BEHAVIOR}>
+      <ScrollView
+        style={{ width: '100%' }}
+        contentContainerStyle={[
+          styles.modalScrollContent,
+          { paddingBottom: Math.max(bottomInset + 16, 20) },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.modalCard, cardStyle]}>{children}</View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  </Modal>
+);
+
 export const AdminPortalScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 390;
 
@@ -636,13 +663,14 @@ Official signed allotment record has been certified.`
   // When no desk is selected, render the Independent Gateway Screen
   if (!selectedRole) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         {/* Gateway Top Navigation Bar */}
         <View style={styles.topBar}>
           <TouchableOpacity
             style={styles.backBtn}
             onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('MainTabs'))}
             activeOpacity={0.7}
+            hitSlop={ICON_HIT_SLOP}
           >
             <ChevronLeft size={18} color="#1E293B" />
             <Text style={styles.backBtnText}>Student App</Text>
@@ -650,13 +678,14 @@ Official signed allotment record has been certified.`
 
           <View style={styles.gatewayTopTitleWrap}>
             <Shield size={16} color="#4F46E5" />
-            <Text style={styles.gatewayTopTitleText}>Hostel Admin Desks</Text>
+            <Text style={styles.gatewayTopTitleText} numberOfLines={1}>Hostel Admin Desks</Text>
           </View>
 
           <TouchableOpacity
             style={styles.logoutBtn}
             onPress={handleAdminLogout}
             activeOpacity={0.7}
+            hitSlop={ICON_HIT_SLOP}
           >
             <LogOut size={16} color="#EF4444" />
           </TouchableOpacity>
@@ -665,7 +694,10 @@ Official signed allotment record has been certified.`
         {/* Gateway Content: 4 Independent Authority Desks */}
         <ScrollView
           style={styles.scrollArea}
-          contentContainerStyle={styles.gatewayScrollContent}
+          contentContainerStyle={[
+            styles.gatewayScrollContent,
+            { paddingBottom: Math.max(insets.bottom + 24, 40) },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.gatewayHeader}>
@@ -738,7 +770,7 @@ Official signed allotment record has been certified.`
             })}
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -747,7 +779,7 @@ Official signed allotment record has been certified.`
     const conf = ADMIN_CREDENTIALS[selectedRole];
 
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         {/* Auth Top Navigation Bar */}
         <View style={styles.topBar}>
           <TouchableOpacity
@@ -757,6 +789,7 @@ Official signed allotment record has been certified.`
               setLoginError('');
             }}
             activeOpacity={0.7}
+            hitSlop={ICON_HIT_SLOP}
           >
             <ChevronLeft size={18} color="#1E293B" />
             <Text style={styles.backBtnText}>All Desks</Text>
@@ -764,7 +797,7 @@ Official signed allotment record has been certified.`
 
           <View style={styles.gatewayTopTitleWrap}>
             <Lock size={14} color={conf.color} />
-            <Text style={[styles.gatewayTopTitleText, { color: conf.color }]}>
+            <Text style={[styles.gatewayTopTitleText, { color: conf.color }]} numberOfLines={1}>
               {selectedRole} Desk Auth
             </Text>
           </View>
@@ -773,19 +806,24 @@ Official signed allotment record has been certified.`
             style={styles.logoutBtn}
             onPress={handleAdminLogout}
             activeOpacity={0.7}
+            hitSlop={ICON_HIT_SLOP}
           >
             <LogOut size={16} color="#EF4444" />
           </TouchableOpacity>
         </View>
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={KBV_BEHAVIOR}
           style={{ flex: 1 }}
         >
           <ScrollView
             style={styles.scrollArea}
-            contentContainerStyle={styles.loginScrollContent}
+            contentContainerStyle={[
+              styles.loginScrollContent,
+              { paddingBottom: Math.max(insets.bottom + 24, 40) },
+            ]}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             {/* Authority Header Card */}
             <View style={[styles.loginHeaderCard, { borderTopColor: conf.color }]}>
@@ -904,14 +942,14 @@ Official signed allotment record has been certified.`
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   const currentOfficer = ADMIN_CREDENTIALS[selectedRole];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Top Navigation Bar for Selected Desk */}
       <View style={styles.topBar}>
         <TouchableOpacity
@@ -924,6 +962,7 @@ Official signed allotment record has been certified.`
             setLoginError('');
           }}
           activeOpacity={0.7}
+          hitSlop={ICON_HIT_SLOP}
         >
           <ChevronLeft size={18} color="#1E293B" />
           <Text style={styles.backBtnText}>{isSmallScreen ? 'Switch' : 'Switch Desk'}</Text>
@@ -944,6 +983,7 @@ Official signed allotment record has been certified.`
             handleAdminLogout();
           }}
           activeOpacity={0.7}
+          hitSlop={ICON_HIT_SLOP}
         >
           <LogOut size={16} color="#EF4444" />
         </TouchableOpacity>
@@ -1059,10 +1099,15 @@ Official signed allotment record has been certified.`
       </View>
 
       {/* Main Content Area for Selected Desk */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={KBV_BEHAVIOR}>
       <ScrollView
         style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom + 24, 36) },
+        ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* ========================================================
             VIEW: WARDEN (1–5 Days Leaves & Sick Bay & Mess)
@@ -1121,7 +1166,7 @@ Official signed allotment record has been certified.`
                   wardenLeaves.map((l) => (
                     <View key={l.id} style={styles.itemCard}>
                       <View style={styles.cardHeaderRow}>
-                        <View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={styles.cardTitle}>{l.studentName}</Text>
                           <Text style={styles.cardSubTitle}>{l.usn} • Room {l.roomNumber || 'Hostel'}</Text>
                         </View>
@@ -1175,7 +1220,7 @@ Official signed allotment record has been certified.`
                 {healthLogs.map((h) => (
                   <View key={h.id} style={styles.itemCard}>
                     <View style={styles.cardHeaderRow}>
-                      <View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={styles.cardTitle}>{h.studentName}</Text>
                         <Text style={styles.cardSubTitle}>{h.usn} • {h.roomNumber || 'Hostel'} • {h.location}</Text>
                       </View>
@@ -1238,8 +1283,8 @@ Official signed allotment record has been certified.`
                   .map((m) => (
                     <View key={m.id} style={styles.itemCard}>
                       <View style={styles.cardHeaderRow}>
-                        <Text style={styles.cardTitle}>{m.mealType} ({m.date})</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text style={[styles.cardTitle, { flex: 1, minWidth: 0 }]}>{m.mealType} ({m.date})</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                           <Star size={16} color="#F59E0B" fill="#F59E0B" />
                           <Text style={styles.boldText}>{m.rating} / 5</Text>
                         </View>
@@ -1268,7 +1313,7 @@ Official signed allotment record has been certified.`
                     <View style={[styles.perfHeroIconBox, { backgroundColor: '#FEF3C7' }]}>
                       <Shield size={20} color="#D97706" />
                     </View>
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={styles.perfHeroTitle}>Hostel Room & Bed Allotment</Text>
                       <Text style={styles.perfHeroSub}>Cauvery & Netravati Resident Capacity</Text>
                     </View>
@@ -1315,7 +1360,7 @@ Official signed allotment record has been certified.`
                 {/* 2. Leave Decision Turnaround Time (TAT) */}
                 <View style={styles.itemCard}>
                   <View style={styles.cardHeaderRow}>
-                    <Text style={styles.cardTitle}>Leave Sanctioning Performance & SLA</Text>
+                    <Text style={[styles.cardTitle, { flex: 1, minWidth: 0 }]}>Leave Sanctioning Performance & SLA</Text>
                     <View style={[styles.badge, styles.badgeSuccess]}>
                       <Text style={styles.badgeText}>98.4% On-Time SLA</Text>
                     </View>
@@ -1416,7 +1461,7 @@ Official signed allotment record has been certified.`
                   swoLeaves.map((l) => (
                     <View key={l.id} style={styles.itemCard}>
                       <View style={styles.cardHeaderRow}>
-                        <View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={styles.cardTitle}>{l.studentName}</Text>
                           <Text style={styles.cardSubTitle}>{l.usn} • {l.totalDays} Days</Text>
                         </View>
@@ -1457,7 +1502,7 @@ Official signed allotment record has been certified.`
                 {allGrievances.map((g) => (
                   <View key={g.id} style={styles.itemCard}>
                     <View style={styles.cardHeaderRow}>
-                      <View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={styles.cardTitle}>{g.category} Issue #{g.id}</Text>
                         <Text style={styles.cardSubTitle}>Room {g.roomNumber || 'Hostel'} • {g.createdAt?.substring(0, 10)}</Text>
                       </View>
@@ -1498,7 +1543,7 @@ Official signed allotment record has been certified.`
                   blockedStudents.map((b, idx) => (
                     <View key={idx} style={styles.itemCard}>
                       <View style={styles.cardHeaderRow}>
-                        <View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={styles.cardTitle}>{b.name || 'Student'}</Text>
                           <Text style={styles.cardSubTitle}>USN: {b.usn}</Text>
                         </View>
@@ -1531,7 +1576,7 @@ Official signed allotment record has been certified.`
                     <View style={[styles.perfHeroIconBox, { backgroundColor: '#D1FAE5' }]}>
                       <Wrench size={20} color="#059669" />
                     </View>
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={styles.perfHeroTitle}>Maintenance Staff Allotment</Text>
                       <Text style={styles.perfHeroSub}>Hostel Facility Technicians on Active Duty</Text>
                     </View>
@@ -1577,7 +1622,7 @@ Official signed allotment record has been certified.`
                 {/* 2. Disciplinary Clearance & Welfare SLA */}
                 <View style={styles.itemCard}>
                   <View style={styles.cardHeaderRow}>
-                    <Text style={styles.cardTitle}>Welfare Operations & Disciplinary SLA</Text>
+                    <Text style={[styles.cardTitle, { flex: 1, minWidth: 0 }]}>Welfare Operations & Disciplinary SLA</Text>
                     <View style={[styles.badge, styles.badgeSuccess]}>
                       <Text style={styles.badgeText}>Tier 1 Efficiency</Text>
                     </View>
@@ -1668,7 +1713,7 @@ Official signed allotment record has been certified.`
                   hodLeaves.map((l) => (
                     <View key={l.id} style={styles.itemCard}>
                       <View style={styles.cardHeaderRow}>
-                        <View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={styles.cardTitle}>{l.studentName}</Text>
                           <Text style={styles.cardSubTitle}>{l.usn} • {l.totalDays} Days</Text>
                         </View>
@@ -1714,7 +1759,7 @@ Official signed allotment record has been certified.`
                     <Text style={[styles.cardTitle, { marginBottom: 8 }]}>Semester {sem.semester}</Text>
                     {sem.subjects.map((sub) => (
                       <View key={sub.code} style={styles.subjectRow}>
-                        <View style={{ flex: 1 }}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={styles.subjectName}>{sub.name} ({sub.code})</Text>
                           <Text style={[styles.subjectSub, sub.attendancePercentage < 75 && { color: '#EF4444', fontWeight: '700' }]}>
                             Attendance: {sub.attendancePercentage}% ({sub.classesAttended}/{sub.totalClasses}) • IA: {sub.ia1}, {sub.ia2}, {sub.ia3}
@@ -1742,7 +1787,7 @@ Official signed allotment record has been certified.`
                     <View style={[styles.perfHeroIconBox, { backgroundColor: '#EDE9FE' }]}>
                       <GraduationCap size={20} color="#7C3AED" />
                     </View>
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={styles.perfHeroTitle}>Department Academic Performance</Text>
                       <Text style={styles.perfHeroSub}>Computer Science & Engineering Cohort</Text>
                     </View>
@@ -1786,7 +1831,7 @@ Official signed allotment record has been certified.`
                 {/* 2. Concession Allotments & VTU Compliance */}
                 <View style={styles.itemCard}>
                   <View style={styles.cardHeaderRow}>
-                    <Text style={styles.cardTitle}>Academic Concession Allotment & SLA</Text>
+                    <Text style={[styles.cardTitle, { flex: 1, minWidth: 0 }]}>Academic Concession Allotment & SLA</Text>
                     <View style={[styles.badge, styles.badgeSuccess]}>
                       <Text style={styles.badgeText}>100% Concession Credit</Text>
                     </View>
@@ -1943,10 +1988,11 @@ Official signed allotment record has been certified.`
                 {selectedDossier && !isLoadingDossier && (
                   <View style={{ gap: 10 }}>
                     {/* Top bar with back to directory list */}
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
                       <TouchableOpacity
                         style={styles.backToListBtn}
                         onPress={() => setSelectedDossier(null)}
+                        hitSlop={ICON_HIT_SLOP}
                       >
                         <ChevronLeft size={16} color="#4F46E5" />
                         <Text style={styles.backToListBtnText}>Back to All Students</Text>
@@ -1955,6 +2001,7 @@ Official signed allotment record has been certified.`
                         <TouchableOpacity
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 4 }}
                           onPress={() => handleOpenStudentDossier(selectedDossier.student.usn)}
+                          hitSlop={ICON_HIT_SLOP}
                         >
                           <RefreshCw size={12} color="#64748B" />
                           <Text style={{ fontSize: 11, color: '#64748B' }}>Refresh</Text>
@@ -1965,13 +2012,13 @@ Official signed allotment record has been certified.`
                     {/* 1. Master Profile Header Card */}
                     <View style={[styles.itemCard, { borderWidth: 1.5, borderColor: '#4F46E535' }]}>
                       <View style={styles.cardHeaderRow}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
                           <View style={styles.studentAvatarCircle}>
                             <Text style={styles.studentAvatarText}>
                               {selectedDossier.student.name.substring(0, 2).toUpperCase()}
                             </Text>
                           </View>
-                          <View style={{ flex: 1 }}>
+                          <View style={{ flex: 1, minWidth: 0 }}>
                             <Text style={[styles.cardTitle, { fontSize: 16 }]}>{selectedDossier.student.name}</Text>
                             <Text style={styles.cardSubTitle}>
                               USN: {selectedDossier.student.usn} • {selectedDossier.student.branch}
@@ -1982,7 +2029,7 @@ Official signed allotment record has been certified.`
                           </View>
                         </View>
 
-                        <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, flexShrink: 0 }}>
                           <View
                             style={[
                               styles.badge,
@@ -2052,7 +2099,7 @@ Official signed allotment record has been certified.`
                         </View>
                         <View style={styles.detailRow}>
                           <Text style={styles.detailLabel}>Digital Barcode:</Text>
-                          <Text style={[styles.detailValue, { fontFamily: 'monospace', fontWeight: '700' }]}>
+                          <Text style={[styles.detailValue, { fontFamily: MONO_FONT, fontWeight: '700' }]}>
                             {selectedDossier.barcode || `*STU-${selectedDossier.student.usn}*`}
                           </Text>
                         </View>
@@ -2164,7 +2211,7 @@ Official signed allotment record has been certified.`
                         <Text style={styles.sectionHeading}>Academic Attendance & CIE Marks</Text>
                         {academics[0]?.subjects?.map((sub) => (
                           <View key={sub.code} style={styles.subjectRow}>
-                            <View style={{ flex: 1 }}>
+                            <View style={{ flex: 1, minWidth: 0 }}>
                               <Text style={styles.subjectName}>{sub.name} ({sub.code})</Text>
                               <Text style={[styles.subjectSub, sub.attendancePercentage < 75 && { color: '#EF4444', fontWeight: '700' }]}>
                                 Attendance: {sub.attendancePercentage}% ({sub.classesAttended}/{sub.totalClasses}) • IA: {sub.ia1}, {sub.ia2}, {sub.ia3}
@@ -2269,7 +2316,7 @@ Official signed allotment record has been certified.`
                     filteredStudents.map((s) => (
                       <View key={s.usn} style={styles.itemCard}>
                         <View style={styles.cardHeaderRow}>
-                          <View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
                             <Text style={styles.cardTitle}>{s.name}</Text>
                             <Text style={styles.cardSubTitle}>{s.usn} • {s.branch || 'CSE'}</Text>
                           </View>
@@ -2317,7 +2364,7 @@ Official signed allotment record has been certified.`
                   latecomers.map((g) => (
                     <View key={g.id} style={styles.itemCard}>
                       <View style={styles.cardHeaderRow}>
-                        <View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={styles.cardTitle}>{g.studentName || 'Student'}</Text>
                           <Text style={styles.cardSubTitle}>USN: {g.usn} • Station: {g.station}</Text>
                         </View>
@@ -2434,8 +2481,8 @@ Official signed allotment record has been certified.`
                 {activityFeed.map((item) => (
                   <View key={item.id} style={styles.itemCard}>
                     <View style={styles.cardHeaderRow}>
-                      <Text style={styles.cardTitle}>{item.title}</Text>
-                      <Text style={styles.cardSubTitle}>{item.timestamp}</Text>
+                      <Text style={[styles.cardTitle, { flex: 1, minWidth: 0 }]}>{item.title}</Text>
+                      <Text style={[styles.cardSubTitle, { flexShrink: 0 }]}>{item.timestamp}</Text>
                     </View>
                     <Text style={styles.infoRowText}>{item.description}</Text>
                     <Text style={[styles.infoRowText, { color: '#64748B', marginTop: 4 }]}>Logged by: {item.actor}</Text>
@@ -2453,7 +2500,7 @@ Official signed allotment record has been certified.`
                     <View style={[styles.perfHeroIconBox, { backgroundColor: '#EEF2FF' }]}>
                       <Award size={20} color="#4F46E5" />
                     </View>
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={styles.perfHeroTitle}>Gate Pass Allotment & Security</Text>
                       <Text style={styles.perfHeroSub}>AO Discretionary & Emergency Outpasses</Text>
                     </View>
@@ -2495,7 +2542,7 @@ Official signed allotment record has been certified.`
                 {/* 2. Gate Movement Velocity & Security Metrics */}
                 <View style={styles.itemCard}>
                   <View style={styles.cardHeaderRow}>
-                    <Text style={styles.cardTitle}>Terminal Gate Security & Logistics SLA</Text>
+                    <Text style={[styles.cardTitle, { flex: 1, minWidth: 0 }]}>Terminal Gate Security & Logistics SLA</Text>
                     <View style={[styles.badge, styles.badgeSuccess]}>
                       <Text style={styles.badgeText}>Zero Violations</Text>
                     </View>
@@ -2537,280 +2584,293 @@ Official signed allotment record has been certified.`
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* ========================================================
           MODALS
          ======================================================== */}
       {/* 1. Log Sick Student Modal */}
-      <Modal visible={showHealthModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Log Student in Sick Bay</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={healthUsn}
-              onChangeText={setHealthUsn}
-              placeholder="Student USN"
-            />
-            <TextInput
-              style={styles.modalInput}
-              value={healthName}
-              onChangeText={setHealthName}
-              placeholder="Student Name"
-            />
-            <TextInput
-              style={styles.modalInput}
-              value={healthSymptoms}
-              onChangeText={setHealthSymptoms}
-              placeholder="Symptoms / Medical Diagnosis"
-            />
-            <TextInput
-              style={styles.modalInput}
-              value={healthMedicines}
-              onChangeText={setHealthMedicines}
-              placeholder="Medicines Prescribed"
-            />
+      <AdminDialogModal
+        visible={showHealthModal}
+        onClose={() => setShowHealthModal(false)}
+        bottomInset={insets.bottom}
+      >
+        <Text style={styles.modalTitle}>Log Student in Sick Bay</Text>
+        <TextInput
+          style={styles.modalInput}
+          value={healthUsn}
+          onChangeText={setHealthUsn}
+          placeholder="Student USN"
+          placeholderTextColor="#94A3B8"
+        />
+        <TextInput
+          style={styles.modalInput}
+          value={healthName}
+          onChangeText={setHealthName}
+          placeholder="Student Name"
+          placeholderTextColor="#94A3B8"
+        />
+        <TextInput
+          style={styles.modalInput}
+          value={healthSymptoms}
+          onChangeText={setHealthSymptoms}
+          placeholder="Symptoms / Medical Diagnosis"
+          placeholderTextColor="#94A3B8"
+        />
+        <TextInput
+          style={styles.modalInput}
+          value={healthMedicines}
+          onChangeText={setHealthMedicines}
+          placeholder="Medicines Prescribed"
+          placeholderTextColor="#94A3B8"
+        />
 
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalCancelBtn]}
-                onPress={() => setShowHealthModal(false)}
-              >
-                <Text style={styles.modalCancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalSubmitBtn]}
-                onPress={handleSaveHealthRoomLog}
-              >
-                <Text style={styles.modalSubmitBtnText}>Save Entry</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        <View style={styles.modalBtnRow}>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalCancelBtn]}
+            onPress={() => setShowHealthModal(false)}
+          >
+            <Text style={styles.modalCancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalSubmitBtn]}
+            onPress={handleSaveHealthRoomLog}
+          >
+            <Text style={styles.modalSubmitBtnText}>Save Entry</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </AdminDialogModal>
 
       {/* 2. Discharge Student Modal */}
-      <Modal visible={!!selectedHealthToDischarge} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Discharge Student</Text>
-            <Text style={styles.infoRowText}>Student: {selectedHealthToDischarge?.studentName}</Text>
-            <TextInput
-              style={[styles.modalInput, { marginTop: 10 }]}
-              value={dischargeRemarks}
-              onChangeText={setDischargeRemarks}
-              placeholder="Discharge / Recovery remarks"
-            />
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalCancelBtn]}
-                onPress={() => setSelectedHealthToDischarge(null)}
-              >
-                <Text style={styles.modalCancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalSubmitBtn]}
-                onPress={handleConfirmDischarge}
-              >
-                <Text style={styles.modalSubmitBtnText}>Confirm Discharge</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+      <AdminDialogModal
+        visible={!!selectedHealthToDischarge}
+        onClose={() => setSelectedHealthToDischarge(null)}
+        bottomInset={insets.bottom}
+      >
+        <Text style={styles.modalTitle}>Discharge Student</Text>
+        <Text style={styles.infoRowText}>Student: {selectedHealthToDischarge?.studentName}</Text>
+        <TextInput
+          style={[styles.modalInput, { marginTop: 10 }]}
+          value={dischargeRemarks}
+          onChangeText={setDischargeRemarks}
+          placeholder="Discharge / Recovery remarks"
+          placeholderTextColor="#94A3B8"
+        />
+        <View style={styles.modalBtnRow}>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalCancelBtn]}
+            onPress={() => setSelectedHealthToDischarge(null)}
+          >
+            <Text style={styles.modalCancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalSubmitBtn]}
+            onPress={handleConfirmDischarge}
+          >
+            <Text style={styles.modalSubmitBtnText}>Confirm Discharge</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </AdminDialogModal>
 
       {/* 3. Assign Staff Modal */}
-      <Modal visible={!!selectedTicket} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Assign Maintenance Staff</Text>
-            <Text style={styles.infoRowText}>Ticket #{selectedTicket?.id}: {selectedTicket?.category}</Text>
-            <TextInput
-              style={[styles.modalInput, { marginTop: 10 }]}
-              value={staffName}
-              onChangeText={setStaffName}
-              placeholder="Staff Name"
-            />
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalCancelBtn]}
-                onPress={() => setSelectedTicket(null)}
-              >
-                <Text style={styles.modalCancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalSubmitBtn]}
-                onPress={handleConfirmAssign}
-              >
-                <Text style={styles.modalSubmitBtnText}>Assign</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+      <AdminDialogModal
+        visible={!!selectedTicket}
+        onClose={() => setSelectedTicket(null)}
+        bottomInset={insets.bottom}
+      >
+        <Text style={styles.modalTitle}>Assign Maintenance Staff</Text>
+        <Text style={styles.infoRowText}>Ticket #{selectedTicket?.id}: {selectedTicket?.category}</Text>
+        <TextInput
+          style={[styles.modalInput, { marginTop: 10 }]}
+          value={staffName}
+          onChangeText={setStaffName}
+          placeholder="Staff Name"
+          placeholderTextColor="#94A3B8"
+        />
+        <View style={styles.modalBtnRow}>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalCancelBtn]}
+            onPress={() => setSelectedTicket(null)}
+          >
+            <Text style={styles.modalCancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalSubmitBtn]}
+            onPress={handleConfirmAssign}
+          >
+            <Text style={styles.modalSubmitBtnText}>Assign</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </AdminDialogModal>
 
       {/* 4. Edit Academics Modal */}
-      <Modal visible={!!selectedSubjectToEdit} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Edit Marks & Attendance</Text>
-            <Text style={styles.infoRowText}>{selectedSubjectToEdit?.name}</Text>
-            <Text style={styles.fieldLabel}>Attendance %</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={editAttendancePct}
-              onChangeText={setEditAttendancePct}
-              keyboardType="numeric"
-            />
-            <Text style={styles.fieldLabel}>IA1 Marks</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={editIa1}
-              onChangeText={setEditIa1}
-              keyboardType="numeric"
-            />
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalCancelBtn]}
-                onPress={() => setSelectedSubjectToEdit(null)}
-              >
-                <Text style={styles.modalCancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalSubmitBtn]}
-                onPress={handleSaveMarksAndAttendance}
-              >
-                <Text style={styles.modalSubmitBtnText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+      <AdminDialogModal
+        visible={!!selectedSubjectToEdit}
+        onClose={() => setSelectedSubjectToEdit(null)}
+        bottomInset={insets.bottom}
+      >
+        <Text style={styles.modalTitle}>Edit Marks & Attendance</Text>
+        <Text style={styles.infoRowText}>{selectedSubjectToEdit?.name}</Text>
+        <Text style={styles.fieldLabel}>Attendance %</Text>
+        <TextInput
+          style={styles.modalInput}
+          value={editAttendancePct}
+          onChangeText={setEditAttendancePct}
+          keyboardType="numeric"
+        />
+        <Text style={styles.fieldLabel}>IA1 Marks</Text>
+        <TextInput
+          style={styles.modalInput}
+          value={editIa1}
+          onChangeText={setEditIa1}
+          keyboardType="numeric"
+        />
+        <View style={styles.modalBtnRow}>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalCancelBtn]}
+            onPress={() => setSelectedSubjectToEdit(null)}
+          >
+            <Text style={styles.modalCancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalSubmitBtn]}
+            onPress={handleSaveMarksAndAttendance}
+          >
+            <Text style={styles.modalSubmitBtnText}>Save</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </AdminDialogModal>
 
       {/* 5. HOD Approval Modal */}
-      <Modal visible={!!selectedHodLeaveToApprove} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>HOD Academic Exemption</Text>
-            <Text style={styles.infoRowText}>Student: {selectedHodLeaveToApprove?.studentName} ({selectedHodLeaveToApprove?.totalDays} Days)</Text>
-            <Text style={styles.fieldLabel}>Official Exemption Reason</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={hodExemptionReason}
-              onChangeText={setHodExemptionReason}
-            />
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalCancelBtn]}
-                onPress={() => setSelectedHodLeaveToApprove(null)}
-              >
-                <Text style={styles.modalCancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalSubmitBtn]}
-                onPress={handleConfirmHodApprove}
-              >
-                <Text style={styles.modalSubmitBtnText}>Approve Leave</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+      <AdminDialogModal
+        visible={!!selectedHodLeaveToApprove}
+        onClose={() => setSelectedHodLeaveToApprove(null)}
+        bottomInset={insets.bottom}
+      >
+        <Text style={styles.modalTitle}>HOD Academic Exemption</Text>
+        <Text style={styles.infoRowText}>Student: {selectedHodLeaveToApprove?.studentName} ({selectedHodLeaveToApprove?.totalDays} Days)</Text>
+        <Text style={styles.fieldLabel}>Official Exemption Reason</Text>
+        <TextInput
+          style={styles.modalInput}
+          value={hodExemptionReason}
+          onChangeText={setHodExemptionReason}
+        />
+        <View style={styles.modalBtnRow}>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalCancelBtn]}
+            onPress={() => setSelectedHodLeaveToApprove(null)}
+          >
+            <Text style={styles.modalCancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalSubmitBtn]}
+            onPress={handleConfirmHodApprove}
+          >
+            <Text style={styles.modalSubmitBtnText}>Approve Leave</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </AdminDialogModal>
 
       {/* 6. Photo Viewer Modal */}
-      <Modal visible={!!selectedPhotoModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { padding: 12 }]}>
-            <Text style={styles.modalTitle}>{selectedPhotoModal?.title}</Text>
-            {selectedPhotoModal?.uri && (
-              <Image
-                source={{ uri: selectedPhotoModal.uri }}
-                style={{ width: '100%', height: 260, borderRadius: 8, marginVertical: 10 }}
-                resizeMode="cover"
-              />
-            )}
-            <Text style={styles.infoRowText}>{selectedPhotoModal?.subtitle}</Text>
-            <TouchableOpacity
-              style={[styles.modalBtn, styles.modalSubmitBtn, { marginTop: 12 }]}
-              onPress={() => setSelectedPhotoModal(null)}
-            >
-              <Text style={styles.modalSubmitBtnText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <AdminDialogModal
+        visible={!!selectedPhotoModal}
+        onClose={() => setSelectedPhotoModal(null)}
+        bottomInset={insets.bottom}
+        cardStyle={{ padding: 12 }}
+      >
+        <Text style={styles.modalTitle}>{selectedPhotoModal?.title}</Text>
+        {selectedPhotoModal?.uri && (
+          <Image
+            source={{ uri: selectedPhotoModal.uri }}
+            style={{ width: '100%', height: 260, borderRadius: 8, marginVertical: 10 }}
+            resizeMode="cover"
+          />
+        )}
+        <Text style={styles.infoRowText}>{selectedPhotoModal?.subtitle}</Text>
+        <TouchableOpacity
+          style={[styles.modalBtn, styles.modalSubmitBtn, { marginTop: 12 }]}
+          onPress={() => setSelectedPhotoModal(null)}
+        >
+          <Text style={styles.modalSubmitBtnText}>Close</Text>
+        </TouchableOpacity>
+      </AdminDialogModal>
 
       {/* 7. Room Allotment Execution Modal */}
-      <Modal visible={showRoomAllotModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Execute Hostel Room & Bed Allotment</Text>
-            <Text style={styles.infoRowText}>Assign room and allocate official hostel residency:</Text>
+      <AdminDialogModal
+        visible={showRoomAllotModal}
+        onClose={() => setShowRoomAllotModal(false)}
+        bottomInset={insets.bottom}
+      >
+        <Text style={styles.modalTitle}>Execute Hostel Room & Bed Allotment</Text>
+        <Text style={styles.infoRowText}>Assign room and allocate official hostel residency:</Text>
 
-            <Text style={styles.fieldLabel}>Student USN</Text>
+        <Text style={styles.fieldLabel}>Student USN</Text>
+        <TextInput
+          style={styles.modalInput}
+          value={allotUsn}
+          onChangeText={setAllotUsn}
+          placeholder="e.g. 1RV22CS089"
+          placeholderTextColor="#94A3B8"
+          autoCapitalize="characters"
+        />
+
+        <Text style={styles.fieldLabel}>Student Full Name</Text>
+        <TextInput
+          style={styles.modalInput}
+          value={allotName}
+          onChangeText={setAllotName}
+          placeholder="e.g. Aditya Sharma"
+          placeholderTextColor="#94A3B8"
+        />
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <View style={{ flex: 1, minWidth: 120 }}>
+            <Text style={styles.fieldLabel}>Hostel Block</Text>
             <TextInput
               style={styles.modalInput}
-              value={allotUsn}
-              onChangeText={setAllotUsn}
-              placeholder="e.g. 1RV22CS089"
-              autoCapitalize="characters"
+              value={allotBlock}
+              onChangeText={setAllotBlock}
+              placeholder="Cauvery Block"
+              placeholderTextColor="#94A3B8"
             />
-
-            <Text style={styles.fieldLabel}>Student Full Name</Text>
+          </View>
+          <View style={{ flex: 1, minWidth: 120 }}>
+            <Text style={styles.fieldLabel}>Room & Bed</Text>
             <TextInput
               style={styles.modalInput}
-              value={allotName}
-              onChangeText={setAllotName}
-              placeholder="e.g. Aditya Sharma"
+              value={allotRoom}
+              onChangeText={setAllotRoom}
+              placeholder="Room B-304"
+              placeholderTextColor="#94A3B8"
             />
-
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Hostel Block</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={allotBlock}
-                  onChangeText={setAllotBlock}
-                  placeholder="Cauvery Block"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Room & Bed</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={allotRoom}
-                  onChangeText={setAllotRoom}
-                  placeholder="Room B-304"
-                />
-              </View>
-            </View>
-
-            <Text style={styles.fieldLabel}>Hostel Fee Receipt Number</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={allotFeeReceipt}
-              onChangeText={setAllotFeeReceipt}
-              placeholder="e.g. REC-AIET-2026-9912"
-            />
-
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalCancelBtn]}
-                onPress={() => setShowRoomAllotModal(false)}
-              >
-                <Text style={styles.modalCancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: '#D97706' }]}
-                onPress={handlePerformRoomAllotment}
-              >
-                <Text style={styles.modalSubmitBtnText}>Confirm Bed Allotment</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
-      </Modal>
-    </SafeAreaView>
+
+        <Text style={styles.fieldLabel}>Hostel Fee Receipt Number</Text>
+        <TextInput
+          style={styles.modalInput}
+          value={allotFeeReceipt}
+          onChangeText={setAllotFeeReceipt}
+          placeholder="e.g. REC-AIET-2026-9912"
+          placeholderTextColor="#94A3B8"
+        />
+
+        <View style={styles.modalBtnRow}>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalCancelBtn]}
+            onPress={() => setShowRoomAllotModal(false)}
+          >
+            <Text style={styles.modalCancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalBtn, { backgroundColor: '#D97706' }]}
+            onPress={handlePerformRoomAllotment}
+          >
+            <Text style={styles.modalSubmitBtnText}>Confirm Bed Allotment</Text>
+          </TouchableOpacity>
+        </View>
+      </AdminDialogModal>
+    </View>
   );
 };
 
@@ -2865,11 +2925,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
+    flexShrink: 1,
+    minWidth: 0,
   },
   gatewayTopTitleText: {
     fontSize: 13,
     fontWeight: '700',
     color: '#4F46E5',
+    flexShrink: 1,
   },
   roleBadgeDot: {
     width: 8,
@@ -2885,6 +2948,7 @@ const styles = StyleSheet.create({
     padding: 6,
     backgroundColor: '#FEE2E2',
     borderRadius: 8,
+    flexShrink: 0,
   },
 
   // Role Switcher Tabs
@@ -2977,6 +3041,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 12,
     paddingBottom: 32,
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
   },
   viewSection: {
     gap: 12,
@@ -3031,8 +3098,10 @@ const styles = StyleSheet.create({
   },
   cardHeaderRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    gap: 8,
   },
   cardTitle: {
     fontSize: 14,
@@ -3063,6 +3132,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+    flexShrink: 0,
   },
   badgePending: {
     backgroundColor: '#FEF3C7',
@@ -3082,15 +3152,18 @@ const styles = StyleSheet.create({
   // Action Buttons inside Cards
   cardActionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 8,
   },
   actionBtn: {
     flex: 1,
+    minWidth: 110,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 10,
     borderRadius: 6,
     gap: 6,
   },
@@ -3109,11 +3182,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
+    textAlign: 'center',
   },
   secondaryBtnText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#334155',
+    textAlign: 'center',
   },
 
   // Empty State
@@ -3162,15 +3237,17 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    minWidth: 0,
     fontSize: 13,
     color: '#0F172A',
-    padding: 0,
+    ...ANDROID_INPUT_FIX,
   },
   searchSubmitBtn: {
     backgroundColor: '#4F46E5',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
+    flexShrink: 0,
   },
   searchSubmitBtnText: {
     color: '#FFFFFF',
@@ -3196,6 +3273,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#C7D2FE',
+    flexShrink: 0,
   },
   studentAvatarText: {
     fontSize: 15,
@@ -3238,7 +3316,10 @@ const styles = StyleSheet.create({
   },
   detailRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 8,
     paddingVertical: 2,
   },
   detailLabel: {
@@ -3249,6 +3330,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#1E293B',
+    flexShrink: 1,
+    textAlign: 'right',
   },
   movementItem: {
     paddingVertical: 6,
@@ -3297,6 +3380,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 10,
     paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
@@ -3316,6 +3400,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
+    flexShrink: 0,
   },
   editSubjectBtnText: {
     fontSize: 11,
@@ -3400,19 +3485,25 @@ const styles = StyleSheet.create({
   primaryLoginBtn: {
     borderRadius: 8,
     paddingVertical: 12,
+    paddingHorizontal: 14,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 14,
   },
   primaryLoginBtnText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+    textAlign: 'center',
   },
 
   // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalScrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -3423,8 +3514,7 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 8,
     width: '100%',
-    maxWidth: 520,
-    maxHeight: '90%',
+    maxWidth: 500,
   },
   modalTitle: {
     fontSize: 16,
@@ -3451,6 +3541,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 6,
   },
   modalCancelBtn: {
@@ -3460,6 +3551,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#475569',
+    textAlign: 'center',
   },
   modalSubmitBtn: {
     backgroundColor: '#1E293B',
@@ -3468,6 +3560,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
+    textAlign: 'center',
   },
 
   // ========================================================
@@ -3476,6 +3569,9 @@ const styles = StyleSheet.create({
   gatewayScrollContent: {
     padding: 16,
     paddingBottom: 40,
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
   },
   gatewayHeader: {
     marginBottom: 16,
@@ -3627,6 +3723,7 @@ const styles = StyleSheet.create({
   },
   perfHeroHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 12,
   },
@@ -3636,6 +3733,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   perfHeroTitle: {
     fontSize: 16,
@@ -3650,11 +3748,13 @@ const styles = StyleSheet.create({
   perfAllotBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
     backgroundColor: '#D97706',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
+    flexShrink: 0,
   },
   perfAllotBtnText: {
     fontSize: 12,
@@ -3719,8 +3819,10 @@ const styles = StyleSheet.create({
   },
   perfMetricRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 6,
     paddingVertical: 4,
   },
   perfMetricLeft: {
@@ -3728,11 +3830,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flex: 1,
+    minWidth: 150,
   },
   perfMetricTitle: {
     fontSize: 13,
     fontWeight: '600',
     color: '#334155',
+    flex: 1,
+    minWidth: 0,
   },
   perfMetricVal: {
     fontSize: 12,
@@ -3746,6 +3851,9 @@ const styles = StyleSheet.create({
   loginScrollContent: {
     padding: 16,
     paddingBottom: 40,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
   },
   loginHeaderCard: {
     backgroundColor: '#FFFFFF',
@@ -3886,6 +3994,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+    textAlign: 'center',
   },
   quickFillBox: {
     marginTop: 16,

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Bell } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { ICON_HIT_SLOP } from '../theme/layout';
 import { UserProfile } from '../types';
 
 interface HeaderProps {
@@ -79,6 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
             style={styles.bellButton}
             onPress={onNotificationsPress}
             activeOpacity={onNotificationsPress ? 0.75 : 0.9}
+            hitSlop={ICON_HIT_SLOP}
             accessibilityRole="button"
             accessibilityLabel="Notifications"
           >
@@ -96,6 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
             style={styles.avatarButton}
             onPress={onProfilePress}
             activeOpacity={0.8}
+            hitSlop={ICON_HIT_SLOP}
             accessibilityRole="button"
             accessibilityLabel="Profile"
           >

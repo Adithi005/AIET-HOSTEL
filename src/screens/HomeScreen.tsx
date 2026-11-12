@@ -39,6 +39,7 @@ import { ApplyHolidayPassModal } from '../components/ApplyHolidayPassModal';
 import { DigitalOutpassModal } from '../components/DigitalOutpassModal';
 import { NotificationsModal } from '../components/NotificationsModal';
 import { colors } from '../theme/colors';
+import { MONO_FONT } from '../theme/layout';
 import { UserProfile, SemesterRecord, LeaveApplication, OutingApplication, StudentNotification } from '../types';
 import { StorageService } from '../services/storage';
 import { getLeaveEscalationInfo } from '../utils/escalation';
@@ -66,6 +67,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const { width } = useWindowDimensions();
   const isDesktop = width >= 860;
+  const isSmallScreen = width < 380;
 
   const loadData = useCallback(async () => {
     try {
@@ -278,9 +280,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   </View>
                 </View>
 
-                <View style={styles.applyBtnCol}>
+                <View style={isSmallScreen ? styles.applyBtnRowMobile : styles.applyBtnCol}>
                   <TouchableOpacity
-                    style={styles.primaryApplyBtn}
+                    style={[styles.primaryApplyBtn, isSmallScreen && { flex: 1 }]}
                     onPress={() => setIsLeaveModalVisible(true)}
                     activeOpacity={0.85}
                   >
@@ -288,12 +290,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                     <Text style={styles.primaryApplyBtnText}>Apply Leave</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.primaryApplyBtn, { backgroundColor: '#10B981', marginTop: 6 }]}
+                    style={[
+                      styles.primaryApplyBtn,
+                      { backgroundColor: '#10B981' },
+                      isSmallScreen ? { flex: 1 } : { marginTop: 6 },
+                    ]}
                     onPress={() => setIsHolidayModalVisible(true)}
                     activeOpacity={0.85}
                   >
                     <Sparkles size={14} color="#FFFFFF" />
-                    <Text style={[styles.primaryApplyBtnText, { fontSize: 11 }]}>Govt Holiday Pass</Text>
+                    <Text style={[styles.primaryApplyBtnText, { fontSize: 12 }]}>Govt Holiday</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -347,7 +353,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
               <View style={styles.outingCard}>
                 <View style={styles.outingHeaderRow}>
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, minWidth: 160 }}>
                     <Text style={styles.outingSectionTitle}>Day & Evening Outing</Text>
                     <Text style={styles.outingCurfewText}>Curfew: 9:00 AM – 4:00 PM (Holiday: 2:00 PM)</Text>
                   </View>
@@ -405,7 +411,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                           <User size={16} color={colors.primary} />
                         </View>
                       )}
-                      <View style={{ flex: 1, justifyContent: 'center' }}>
+                      <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
                         <Text style={styles.activeTokenUsn}>USN: {activeOuting.usn || profile?.usn}</Text>
                       </View>
                     </View>
@@ -467,49 +473,53 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                       </TouchableOpacity>
                     </View>
 
-                    {/* Action button inside active widget */}
-                    <View style={styles.outpassActionButtons}>
-                      <TouchableOpacity
-                        style={styles.viewPassBtn}
-                        onPress={() => setSelectedOutingForPass(activeOuting)}
-                        activeOpacity={0.85}
-                      >
-                        <QrCode size={14} color="#FFFFFF" />
-                        <Text style={styles.viewPassBtnText}>
-                          View Active Pass ({activeOuting.outpassToken})
-                        </Text>
-                      </TouchableOpacity>
+                    {/* Curfew or Cooldown notices (full-width above action buttons) */}
+                    {activeOuting.status === 'Exited Gate' && (() => {
+                      const cooldown = StorageService.getCheckInCooldown(activeOuting);
+                      const curfew = getCurfewStatus(activeOuting);
+                      return (
+                        <>
+                          {(curfew.isLate || curfew.isGraceAlert || cooldown.isRestricted) && (
+                            <View style={styles.outpassNoticesWrap}>
+                              {curfew.isLate ? (
+                                <View style={[styles.homeCooldownBadge, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+                                  <ShieldAlert size={12} color="#DC2626" />
+                                  <Text style={[styles.homeCooldownText, { color: '#991B1B' }]}>
+                                    🚨 Past Curfew Cutoff (+{curfew.minutesPastCurfew}m). Next outing will be blocked.
+                                  </Text>
+                                </View>
+                              ) : curfew.isGraceAlert ? (
+                                <View style={[styles.homeCooldownBadge, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
+                                  <AlertTriangle size={12} color="#D97706" />
+                                  <Text style={[styles.homeCooldownText, { color: '#92400E' }]}>
+                                    ⚠️ Curfew grace period ending at {curfew.graceEndTime}. Return immediately!
+                                  </Text>
+                                </View>
+                              ) : null}
 
-                      {/* Cooldown or Curfew notice & Return action */}
-                      {activeOuting.status === 'Exited Gate' && (() => {
-                        const cooldown = StorageService.getCheckInCooldown(activeOuting);
-                        const curfew = getCurfewStatus(activeOuting);
-                        return (
-                          <View style={{ gap: 8, alignItems: 'flex-start' }}>
-                            {curfew.isLate ? (
-                              <View style={[styles.homeCooldownBadge, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-                                <ShieldAlert size={12} color="#DC2626" />
-                                <Text style={[styles.homeCooldownText, { color: '#991B1B' }]}>
-                                  🚨 Past Curfew Cutoff (+{curfew.minutesPastCurfew}m). Next outing will be blocked.
-                                </Text>
-                              </View>
-                            ) : curfew.isGraceAlert ? (
-                              <View style={[styles.homeCooldownBadge, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
-                                <AlertTriangle size={12} color="#D97706" />
-                                <Text style={[styles.homeCooldownText, { color: '#92400E' }]}>
-                                  ⚠️ Curfew grace period ending at {curfew.graceEndTime}. Return immediately!
-                                </Text>
-                              </View>
-                            ) : null}
+                              {cooldown.isRestricted && (
+                                <View style={styles.homeCooldownBadge}>
+                                  <Clock size={11} color="#B45309" />
+                                  <Text style={styles.homeCooldownText}>
+                                    Re-entry locked for next 15 min ({cooldown.remainingFormatted} left)
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          )}
 
-                            {cooldown.isRestricted && (
-                              <View style={styles.homeCooldownBadge}>
-                                <Clock size={11} color="#B45309" />
-                                <Text style={styles.homeCooldownText}>
-                                  Re-entry locked for next 15 min ({cooldown.remainingFormatted} left)
-                                </Text>
-                              </View>
-                            )}
+                          <View style={styles.outpassActionButtons}>
+                            <TouchableOpacity
+                              style={styles.viewPassBtn}
+                              onPress={() => setSelectedOutingForPass(activeOuting)}
+                              activeOpacity={0.85}
+                            >
+                              <QrCode size={14} color="#FFFFFF" />
+                              <Text style={styles.viewPassBtnText}>
+                                View Active Pass ({activeOuting.outpassToken})
+                              </Text>
+                            </TouchableOpacity>
+
                             <TouchableOpacity
                               style={[styles.quickReturnBtn, cooldown.isRestricted && styles.quickReturnBtnLocked]}
                               onPress={() => {
@@ -529,9 +539,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                               </Text>
                             </TouchableOpacity>
                           </View>
-                        );
-                      })()}
-                    </View>
+                        </>
+                      );
+                    })()}
+
+                    {activeOuting.status !== 'Exited Gate' && (
+                      <View style={styles.outpassActionButtons}>
+                        <TouchableOpacity
+                          style={styles.viewPassBtn}
+                          onPress={() => setSelectedOutingForPass(activeOuting)}
+                          activeOpacity={0.85}
+                        >
+                          <QrCode size={14} color="#FFFFFF" />
+                          <Text style={styles.viewPassBtnText}>
+                            View Active Pass ({activeOuting.outpassToken})
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 ) : (
                   <View style={styles.noActiveOutingBox}>
@@ -552,7 +577,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                         onPress={() => setSelectedOutingForPass(item)}
                         activeOpacity={0.8}
                       >
-                        <View style={{ flex: 1 }}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={styles.recentOutingDest} numberOfLines={1}>
                             {item.destination} ({item.outingType})
                           </Text>
@@ -579,7 +604,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                     <View style={styles.gateHistoryIconBadge}>
                       <History size={16} color="#FFFFFF" />
                     </View>
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={styles.gateHistoryBannerTitle}>Track Check-In & Check-Out History</Text>
                       <Text style={styles.gateHistoryBannerSub}>View live gate scanner logs, campus exit & return timings</Text>
                     </View>
@@ -1065,19 +1090,26 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     minWidth: 140,
   },
+  applyBtnRowMobile: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 8,
+  },
   primaryApplyBtn: {
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 11,
     borderRadius: 10,
   },
   primaryApplyBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
+    textAlign: 'center',
   },
   activeTokenCard: {
     backgroundColor: '#EEF2FF',
@@ -1091,6 +1123,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 8,
   },
   activeTokenStudentRow: {
@@ -1098,6 +1132,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flex: 1,
+    minWidth: 0,
   },
   tokenAvatarPhoto: {
     width: 32,
@@ -1239,13 +1274,16 @@ const styles = StyleSheet.create({
   },
   shortcutsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
   shortcutCard: {
     flex: 1,
+    minWidth: 94,
     backgroundColor: colors.surfaceCard,
     borderRadius: 12,
-    padding: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
     borderWidth: 1,
     borderColor: colors.border,
     minHeight: 104,
@@ -1368,9 +1406,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 10,
   },
-  outpassBadgeCol: {},
+  outpassBadgeCol: {
+    flex: 1,
+    minWidth: 0,
+  },
   outpassBadgeLabel: {
     fontSize: 9,
     fontWeight: '800',
@@ -1414,6 +1457,7 @@ const styles = StyleSheet.create({
   },
   detailCol: {
     flex: 1,
+    minWidth: 0,
   },
   outpassSubLabel: {
     fontSize: 9,
@@ -1472,38 +1516,50 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     color: colors.text,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: MONO_FONT,
+    flexShrink: 1,
   },
   homeRecordedLogText: {
     fontSize: 9,
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
+  outpassNoticesWrap: {
+    gap: 6,
+    marginBottom: 8,
+  },
   outpassActionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
   },
   viewPassBtn: {
     flex: 1,
+    minWidth: 150,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
     borderRadius: 8,
   },
   viewPassBtnText: {
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
+    textAlign: 'center',
+    flexShrink: 1,
   },
   quickExitBtn: {
     backgroundColor: '#D97706',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quickExitBtnText: {
     color: '#FFFFFF',
@@ -1513,8 +1569,10 @@ const styles = StyleSheet.create({
   quickReturnBtn: {
     backgroundColor: colors.successDark,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quickReturnBtnLocked: {
     backgroundColor: '#FEF3C7',
@@ -1525,6 +1583,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
+    textAlign: 'center',
   },
   quickReturnBtnTextLocked: {
     color: '#92400E',
@@ -1534,16 +1593,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFBEB',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#FDE68A',
-    gap: 5,
+    gap: 6,
   },
   homeCooldownText: {
     fontSize: 10,
     fontWeight: '700',
     color: '#B45309',
+    flex: 1,
   },
   noActiveOutingBox: {
     backgroundColor: '#F8FAFC',
@@ -1575,6 +1635,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 10,
     paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
@@ -1591,6 +1652,7 @@ const styles = StyleSheet.create({
   },
   recentOutingRight: {
     alignItems: 'flex-end',
+    flexShrink: 0,
   },
   recentOutingToken: {
     fontSize: 11,
@@ -1682,6 +1744,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 10,
     backgroundColor: '#EEF2FF',
     borderRadius: 10,
     borderWidth: 1,
@@ -1694,6 +1757,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     flex: 1,
+    minWidth: 0,
   },
   gateHistoryIconBadge: {
     width: 32,

@@ -13,7 +13,9 @@ import {
   Modal,
   ActivityIndicator,
   Pressable,
+  KeyboardAvoidingView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import {
   User,
@@ -41,6 +43,7 @@ import {
 } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { colors } from '../theme/colors';
+import { ANDROID_INPUT_FIX, ICON_HIT_SLOP, KBV_BEHAVIOR, MONO_FONT } from '../theme/layout';
 import { UserProfile } from '../types';
 import { StorageService } from '../services/storage';
 
@@ -54,6 +57,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
   const [guardianContact, setGuardianContact] = useState('');
   const [hostelBlock, setHostelBlock] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
+  const insets = useSafeAreaInsets();
   const [avatarUri, setAvatarUri] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -213,18 +217,24 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
           style={styles.backButton}
           onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('HomeTab'))}
           activeOpacity={0.75}
+          hitSlop={ICON_HIT_SLOP}
         >
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.profileTitleHeader}>Student Profile</Text>
-        <View style={{ width: 60 }} />
+        <Text style={styles.profileTitleHeader} numberOfLines={1}>Student Profile</Text>
+        <View style={{ width: 68 }} />
       </View>
 
-      <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <KeyboardAvoidingView behavior={KBV_BEHAVIOR} style={{ flex: 1 }}>
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom + 24, 40) },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Avatar Card */}
         <View style={styles.avatarCard}>
           <TouchableOpacity
@@ -387,7 +397,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
 
           {/* Hostel Block & Room */}
           <View style={styles.rowTwo}>
-            <View style={{ flex: 1.5 }}>
+            <View style={{ flex: 1.5, minWidth: 165 }}>
               <Text style={styles.fieldLabel}>Hostel Block</Text>
               <View style={styles.inputContainer}>
                 <Home size={16} color={colors.textSecondary} />
@@ -430,7 +440,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
             <View style={styles.deviceSecurityIconBadge}>
               <Smartphone size={18} color="#0D9488" />
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.deviceSecurityTitle}>Single-Device Login Policy Active</Text>
               <Text style={styles.deviceSecuritySubHead}>
                 Handled & Enforced by Hostel Admin Desk
@@ -512,7 +522,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
               <View style={[styles.portalShortcutIcon, { backgroundColor: colors.primarySubtle }]}>
                 <FileText size={18} color={colors.primaryDark} />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.portalShortcutTitle}>Student Document Vault</Text>
                 <Text style={styles.portalShortcutSub}>Official marks cards, RVCE student ID, and hostel room allotment</Text>
               </View>
@@ -527,7 +537,8 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
           <Text style={styles.footerTagline}>A connected home for every AIET hosteller</Text>
           <Text style={styles.footerVersion}>Version 1.0.0 • Hostel Resident Portal</Text>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -690,11 +701,14 @@ const styles = StyleSheet.create({
   },
   inputField: {
     flex: 1,
+    minWidth: 0,
     fontSize: 13,
     color: colors.text,
+    ...ANDROID_INPUT_FIX,
   },
   rowTwo: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     marginBottom: 14,
   },
@@ -775,6 +789,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     flex: 1,
+    minWidth: 0,
   },
   portalShortcutIcon: {
     width: 38,
@@ -782,6 +797,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   portalShortcutTitle: {
     fontSize: 13,
@@ -797,6 +813,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: colors.surfaceCard,
@@ -804,10 +821,14 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   backButton: {
-    paddingVertical: 4,
+    width: 68,
+    minHeight: 34,
+    paddingVertical: 6,
     paddingHorizontal: 8,
-    borderRadius: 6,
+    borderRadius: 8,
     backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backButtonText: {
     fontSize: 12,
@@ -832,6 +853,7 @@ const styles = StyleSheet.create({
   deviceSecurityHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 10,
     marginBottom: 10,
   },
@@ -842,6 +864,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#CCFBF1',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   deviceSecurityTitle: {
     fontSize: 13,
@@ -858,6 +881,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    flexShrink: 0,
   },
   boundBadgeText: {
     fontSize: 9,
@@ -878,6 +902,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   specLabel: {
     fontSize: 11,
@@ -887,16 +913,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: colors.text,
+    flexShrink: 1,
+    textAlign: 'right',
   },
   specValMono: {
     fontSize: 10,
     fontWeight: '700',
-    fontFamily: 'monospace',
+    fontFamily: MONO_FONT,
     color: colors.primary,
     backgroundColor: colors.primarySubtle,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    flexShrink: 1,
   },
   deviceSecurityText: {
     fontSize: 11,
@@ -957,6 +986,8 @@ const styles = StyleSheet.create({
   },
   avatarActionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
     marginTop: 8,

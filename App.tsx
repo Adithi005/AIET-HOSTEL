@@ -28,8 +28,8 @@ const Stack = createNativeStackNavigator();
 function BottomTabNavigator() {
   const insets = useSafeAreaInsets();
   const bottomPadding = Platform.select({
-    ios: Math.max(insets.bottom, 22),
-    android: Math.max(insets.bottom, 8),
+    ios: Math.max(insets.bottom, 10),
+    android: Math.max(insets.bottom, 10),
     default: 8,
   });
   const tabBarHeight = 56 + bottomPadding;
@@ -40,6 +40,8 @@ function BottomTabNavigator() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
+        tabBarHideOnKeyboard: true,
+        tabBarAllowFontScaling: false,
         tabBarStyle: [
           styles.tabBar,
           {
@@ -147,10 +149,15 @@ const styles = StyleSheet.create({
   webBackdrop: {
     flex: 1,
     backgroundColor: Platform.OS === 'web' ? '#F8FAFC' : '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    height: '100%',
+    ...Platform.select({
+      web: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        height: '100%',
+      },
+      default: {},
+    }),
   },
   safeArea: {
     flex: 1,
@@ -173,9 +180,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopColor: colors.border,
     borderTopWidth: 1,
-    paddingTop: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: 6,
     ...Platform.select({
       web: {
         maxWidth: 1280,
@@ -186,7 +191,7 @@ const styles = StyleSheet.create({
     }),
   },
   tabBarLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     marginTop: 2,
     textAlign: 'center',

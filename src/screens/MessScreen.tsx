@@ -9,6 +9,7 @@ import {
   Alert,
   Image,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { colors } from '../theme/colors';
+import { KBV_BEHAVIOR } from '../theme/layout';
 import { UserProfile, MessDaySchedule, MessMeal } from '../types';
 import { WEEKLY_MESS_SCHEDULE, StorageService } from '../services/storage';
 
@@ -128,23 +130,25 @@ export const MessScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         onAdminPress={() => navigation.navigate('AdminPortal')}
       />
 
-      <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Top Banner */}
-        <View style={styles.bannerCard}>
-          <View style={styles.bannerHeader}>
-            <View style={styles.bannerIconWrap}>
-              <Utensils size={22} color="#FFFFFF" />
-            </View>
-            <View>
-              <Text style={styles.bannerTitle}>Annapurna Hostel Mess</Text>
-              <Text style={styles.bannerSub}>Pure Veg & Non-Veg Multi-Cuisine Dining</Text>
+      <KeyboardAvoidingView behavior={KBV_BEHAVIOR} style={{ flex: 1 }}>
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Top Banner */}
+          <View style={styles.bannerCard}>
+            <View style={styles.bannerHeader}>
+              <View style={styles.bannerIconWrap}>
+                <Utensils size={22} color="#FFFFFF" />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.bannerTitle}>Annapurna Hostel Mess</Text>
+                <Text style={styles.bannerSub}>Pure Veg & Non-Veg Multi-Cuisine Dining</Text>
+              </View>
             </View>
           </View>
-        </View>
 
         {/* Day of Week Selector */}
         <View style={styles.daySelectorWrapper}>
@@ -245,7 +249,7 @@ export const MessScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           {/* Star Selector */}
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((star) => (
-              <TouchableOpacity key={star} onPress={() => setStars(star)} style={{ padding: 4 }}>
+              <TouchableOpacity key={star} onPress={() => setStars(star)} style={{ padding: 6 }}>
                 <Star
                   size={28}
                   color={star <= stars ? '#F59E0B' : '#CBD5E1'}
@@ -327,7 +331,8 @@ export const MessScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             next month's mess bill.
           </Text>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -371,6 +376,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   bannerTitle: {
     fontSize: 16,
@@ -434,7 +440,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     flex: 1,
-    minWidth: 280,
+    minWidth: 260,
   },
   mealCardSpecial: {
     borderColor: '#FDE68A',
@@ -444,6 +450,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -451,7 +459,10 @@ const styles = StyleSheet.create({
   mealTypeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
+    flex: 1,
+    minWidth: 0,
   },
   mealTypeTitle: {
     fontSize: 14,
@@ -492,7 +503,7 @@ const styles = StyleSheet.create({
   },
   itemBulletRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
   },
   itemDot: {
@@ -500,11 +511,15 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.primaryLight,
+    marginTop: 7,
+    flexShrink: 0,
   },
   itemText: {
+    flex: 1,
     fontSize: 13,
     color: colors.text,
     fontWeight: '500',
+    lineHeight: 19,
   },
   feedbackCard: {
     backgroundColor: colors.surfaceCard,
@@ -555,6 +570,7 @@ const styles = StyleSheet.create({
   starsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 4,
     marginBottom: 12,
   },
@@ -615,13 +631,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
     borderRadius: 8,
   },
   takeMealPhotoBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 12,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   messPhotoPreviewCard: {
     borderRadius: 10,

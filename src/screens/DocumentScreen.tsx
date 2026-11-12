@@ -9,7 +9,9 @@ import {
   Alert,
   Modal,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import {
   GraduationCap,
@@ -31,11 +33,16 @@ import {
   ShieldAlert,
 } from 'lucide-react-native';
 import { Header } from '../components/Header';
+import { BottomSheetWrapper } from '../components/BottomSheetWrapper';
 import { colors } from '../theme/colors';
+import { ICON_HIT_SLOP } from '../theme/layout';
 import { UserProfile, SemesterRecord, StudentDocument, AoPetitionType, AoStudentPetition } from '../types';
 import { StorageService } from '../services/storage';
 
 export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isCompactTabs = width < 420;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [academics, setAcademics] = useState<SemesterRecord[]>([]);
   const [documents, setDocuments] = useState<StudentDocument[]>([]);
@@ -177,17 +184,22 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
           style={styles.backButton}
           onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('HomeTab'))}
           activeOpacity={0.75}
+          hitSlop={ICON_HIT_SLOP}
         >
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.topNavTitle}>Academic & Document Vault</Text>
-        <View style={{ width: 60 }} />
+        <Text style={styles.topNavTitle} numberOfLines={1}>Academic & Document Vault</Text>
+        <View style={{ width: 68 }} />
       </View>
 
       <ScrollView
         style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom + 24, 36) },
+        ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Top Header Banner */}
         <View style={styles.vaultBanner}>
@@ -195,7 +207,7 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             <View style={styles.bannerIconWrap}>
               <Award size={24} color="#FFFFFF" />
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.vaultTitle}>4-Year Academic & Document Vault</Text>
               <Text style={styles.vaultSubtitle}>
                 Persistent record of Semesters 1 to 8 • IA Marks, Attendance & Official Proofs
@@ -207,7 +219,11 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         {/* Tab Switcher: 4-Year Academics vs Uploaded Documents */}
         <View style={styles.mainTabRow}>
           <TouchableOpacity
-            style={[styles.mainTabBtn, activeTab === 'academics' && styles.mainTabBtnActive]}
+            style={[
+              styles.mainTabBtn,
+              isCompactTabs && styles.mainTabBtnCompact,
+              activeTab === 'academics' && styles.mainTabBtnActive,
+            ]}
             onPress={() => setActiveTab('academics')}
           >
             <GraduationCap
@@ -217,15 +233,23 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             <Text
               style={[
                 styles.mainTabBtnText,
+                isCompactTabs && styles.mainTabBtnTextCompact,
                 activeTab === 'academics' && styles.mainTabBtnTextActive,
               ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
             >
               4-Year Sem Records
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.mainTabBtn, activeTab === 'documents' && styles.mainTabBtnActive]}
+            style={[
+              styles.mainTabBtn,
+              isCompactTabs && styles.mainTabBtnCompact,
+              activeTab === 'documents' && styles.mainTabBtnActive,
+            ]}
             onPress={() => setActiveTab('documents')}
           >
             <FileText
@@ -235,15 +259,23 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             <Text
               style={[
                 styles.mainTabBtnText,
+                isCompactTabs && styles.mainTabBtnTextCompact,
                 activeTab === 'documents' && styles.mainTabBtnTextActive,
               ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
             >
               Vault ({documents.length})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.mainTabBtn, activeTab === 'petitions' && styles.mainTabBtnActive]}
+            style={[
+              styles.mainTabBtn,
+              isCompactTabs && styles.mainTabBtnCompact,
+              activeTab === 'petitions' && styles.mainTabBtnActive,
+            ]}
             onPress={() => setActiveTab('petitions')}
           >
             <Building
@@ -253,8 +285,12 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             <Text
               style={[
                 styles.mainTabBtnText,
+                isCompactTabs && styles.mainTabBtnTextCompact,
                 activeTab === 'petitions' && { color: '#0D9488', fontWeight: '800' },
               ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
             >
               AO Desk ({petitions.length})
             </Text>
@@ -349,7 +385,7 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
               {currentSemRecord.subjects.map((subj) => (
                 <View key={subj.code} style={styles.subjectCard}>
                   <View style={styles.subjectHeader}>
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
                       <Text style={styles.subjCode}>{subj.code}</Text>
                       <Text style={styles.subjName}>{subj.name}</Text>
                     </View>
@@ -417,7 +453,7 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         {activeTab === 'documents' && (
           <View>
             <View style={styles.uploadDocBanner}>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.uploadBannerTitle}>Official Document Repository</Text>
                 <Text style={styles.uploadBannerSub}>
                   Upload Marks Cards, ID Cards, Allotment Letters, and Medical Prescriptions.
@@ -479,7 +515,7 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             <View style={styles.aoStudentBanner}>
               <View style={styles.aoStudentBannerHeader}>
                 <Building size={20} color="#0D9488" />
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.aoStudentBannerTitle}>
                     Administrative Officer (AO) Office Petitions
                   </Text>
@@ -492,7 +528,7 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
             {/* Header Action Row */}
             <View style={styles.vaultSectionHeader}>
-              <View>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.subHeading}>MY AO PETITIONS & CLEARANCES</Text>
                 <Text style={styles.subHeadingNote}>Track status of submitted applications</Text>
               </View>
@@ -521,10 +557,10 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                 return (
                   <View key={item.id} style={styles.petitionStudentCard}>
                     <View style={styles.petitionStudentCardHeader}>
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, minWidth: 0 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           <Award size={16} color="#0D9488" />
-                          <Text style={styles.petitionCardTypeTitle}>{item.type}</Text>
+                          <Text style={[styles.petitionCardTypeTitle, { flexShrink: 1 }]}>{item.type}</Text>
                         </View>
                         <Text style={styles.petitionCardDateText}>Applied: {item.requestedDate} • ID: {item.id}</Text>
                       </View>
@@ -643,17 +679,27 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       {/* =======================================================
           DOCUMENT UPLOAD MODAL
          ======================================================= */}
-      <Modal visible={isUploadModalOpen} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalSheetHeader}>
+      <Modal
+        visible={isUploadModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsUploadModalOpen(false)}
+      >
+        <BottomSheetWrapper maxHeight="90%" baseBottomPadding={16}>
+          <View style={styles.modalSheetHeader}>
+            <View style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
               <Text style={styles.modalSheetTitle}>Upload Document to Vault</Text>
-              <TouchableOpacity onPress={() => setIsUploadModalOpen(false)}>
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
             </View>
+            <TouchableOpacity onPress={() => setIsUploadModalOpen(false)} hitSlop={ICON_HIT_SLOP}>
+              <X size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
 
-            <ScrollView style={{ paddingHorizontal: 20, paddingTop: 14 }}>
+          <ScrollView
+            style={{ paddingHorizontal: 20, paddingTop: 14 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
               <Text style={styles.modalFieldLabel}>Document Title</Text>
               <TextInput
                 style={styles.modalInput}
@@ -695,7 +741,7 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                   <Text style={styles.selectedFileName} numberOfLines={1}>
                     {selectedFile.name}
                   </Text>
-                  <TouchableOpacity onPress={() => setSelectedFile(null)}>
+                  <TouchableOpacity onPress={() => setSelectedFile(null)} hitSlop={ICON_HIT_SLOP}>
                     <Trash2 size={16} color={colors.danger} />
                   </TouchableOpacity>
                 </View>
@@ -719,27 +765,34 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                 <Text style={styles.saveDocBtnText}>Store in 4-Year Vault</Text>
               </TouchableOpacity>
             </ScrollView>
-          </View>
-        </View>
+        </BottomSheetWrapper>
       </Modal>
 
       {/* =======================================================
           AO PETITION APPLICATION MODAL
          ======================================================= */}
-      <Modal visible={isPetitionModalOpen} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalSheet, { maxHeight: '90%' }]}>
-            <View style={styles.modalSheetHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                <Building size={18} color="#0D9488" />
-                <Text style={styles.modalSheetTitle}>Apply to Administrative Officer</Text>
-              </View>
-              <TouchableOpacity onPress={() => setIsPetitionModalOpen(false)}>
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
+      <Modal
+        visible={isPetitionModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsPetitionModalOpen(false)}
+      >
+        <BottomSheetWrapper maxHeight="90%" baseBottomPadding={16}>
+          <View style={styles.modalSheetHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, paddingRight: 10 }}>
+              <Building size={18} color="#0D9488" />
+              <Text style={[styles.modalSheetTitle, { flexShrink: 1 }]}>Apply to Administrative Officer</Text>
             </View>
+            <TouchableOpacity onPress={() => setIsPetitionModalOpen(false)} hitSlop={ICON_HIT_SLOP}>
+              <X size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
 
-            <ScrollView style={{ paddingHorizontal: 20, paddingTop: 14 }}>
+          <ScrollView
+            style={{ paddingHorizontal: 20, paddingTop: 14 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
               {/* Institutional Notice */}
               <View style={styles.aoModalNoticeCard}>
                 <AlertCircle size={15} color="#0D9488" />
@@ -750,10 +803,12 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
               {/* APPLICANT IDENTITY: ONLY USN IS DISPLAYED OR REVEALED */}
               <View style={styles.applicantUsnStrip}>
-                <View style={styles.applicantUsnBadge}>
-                  <Text style={styles.applicantUsnBadgeText}>APPLICANT USN</Text>
+                <View style={styles.applicantUsnLeft}>
+                  <View style={styles.applicantUsnBadge}>
+                    <Text style={styles.applicantUsnBadgeText}>APPLICANT USN</Text>
+                  </View>
+                  <Text style={styles.applicantUsnValue}>{profile?.usn || '1RV22CS089'}</Text>
                 </View>
-                <Text style={styles.applicantUsnValue}>{profile?.usn || '1RV22CS089'}</Text>
                 <Text style={styles.applicantUsnPolicy}>(Only USN is displayed or revealed)</Text>
               </View>
 
@@ -893,10 +948,9 @@ export const DocumentScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                   {isSubmittingPetition ? 'Forwarding to AO...' : 'Submit Petition to AO Desk'}
                 </Text>
               </TouchableOpacity>
-              <View style={{ height: 30 }} />
+              <View style={{ height: 12 }} />
             </ScrollView>
-          </View>
-        </View>
+        </BottomSheetWrapper>
       </Modal>
     </View>
   );
@@ -918,10 +972,13 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   backButton: {
+    minWidth: 68,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 8,
     backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backButtonText: {
     fontSize: 12,
@@ -934,6 +991,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
     flex: 1,
+    paddingHorizontal: 6,
   },
   scrollArea: {
     flex: 1,
@@ -969,6 +1027,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   vaultTitle: {
     fontSize: 16,
@@ -997,7 +1056,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 10,
+    paddingHorizontal: 6,
     borderRadius: 8,
+  },
+  mainTabBtnCompact: {
+    flexDirection: 'column',
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   mainTabBtnActive: {
     backgroundColor: colors.primarySubtle,
@@ -1006,6 +1072,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  mainTabBtnTextCompact: {
+    fontSize: 11,
   },
   mainTabBtnTextActive: {
     color: colors.primary,
@@ -1115,6 +1185,9 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   semMetricItem: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 4,
     alignItems: 'center',
   },
   semMetricLabel: {
@@ -1190,6 +1263,9 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   iaItem: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 2,
     alignItems: 'center',
   },
   iaTitle: {
@@ -1210,6 +1286,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
     alignItems: 'center',
     marginBottom: 16,
   },
@@ -1227,15 +1305,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
+    flexShrink: 0,
   },
   uploadDocBtnText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
+    textAlign: 'center',
   },
   docsGrid: {
     gap: 12,
@@ -1426,13 +1507,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,
+    textAlign: 'center',
   },
 
   // AO Petitions Styles
   vaultSectionHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 10,
     marginTop: 6,
     marginBottom: 4,
   },
@@ -1468,16 +1552,19 @@ const styles = StyleSheet.create({
   applyPetitionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     backgroundColor: '#0D9488',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
+    flexShrink: 0,
   },
   applyPetitionBtnText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
+    textAlign: 'center',
   },
   emptyPetitionBox: {
     backgroundColor: '#FFFFFF',
@@ -1515,8 +1602,10 @@ const styles = StyleSheet.create({
   },
   petitionStudentCardHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    gap: 8,
   },
   petitionCardTypeTitle: {
     fontSize: 14,
@@ -1532,6 +1621,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    flexShrink: 0,
   },
   statusApproved: {
     backgroundColor: '#ECFDF5',
@@ -1604,6 +1694,7 @@ const styles = StyleSheet.create({
   },
   docDispatchedBox: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
@@ -1620,12 +1711,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#065F46',
     flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
   },
   docDownloadMiniBtn: {
     backgroundColor: '#0D9488',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
+    flexShrink: 0,
   },
   docDownloadMiniText: {
     fontSize: 10,
@@ -1761,10 +1855,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
+    textAlign: 'center',
   },
   applicantUsnStrip: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#F0FDFA',
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -1772,6 +1869,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#99F6E4',
+    gap: 8,
+  },
+  applicantUsnLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   applicantUsnBadge: {
@@ -1795,7 +1897,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#14B8A6',
     fontStyle: 'italic',
-    flex: 1,
-    textAlign: 'right',
+    flexShrink: 1,
   },
 });

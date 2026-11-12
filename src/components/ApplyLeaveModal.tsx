@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import {
@@ -26,6 +27,8 @@ import {
   Clock,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { ANDROID_INPUT_FIX, ICON_HIT_SLOP } from '../theme/layout';
+import { BottomSheetWrapper } from './BottomSheetWrapper';
 import { LeaveApplication } from '../types';
 import { getLeaveEscalationInfo } from '../utils/escalation';
 import { checkHolidayOverlap } from '../utils/holidays';
@@ -227,32 +230,40 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
     }
   };
 
+  const { width } = useWindowDimensions();
+  const isCompactWidth = width < 400;
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalTitle}>Apply for Hostel Leave</Text>
-              <Text style={styles.modalSubtitle}>
-                Cumulative Leaves Taken: <Text style={styles.boldText}>{leavesCount}</Text> (Govt holidays exempt)
-              </Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+      <BottomSheetWrapper baseBottomPadding={16}>
+        {/* Header */}
+        <View style={styles.modalHeader}>
+          <View style={styles.modalHeaderTextWrap}>
+            <Text style={styles.modalTitle}>Apply for Hostel Leave</Text>
+            <Text style={styles.modalSubtitle}>
+              Cumulative Leaves Taken: <Text style={styles.boldText}>{leavesCount}</Text> (Govt holidays exempt)
+            </Text>
           </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={ICON_HIT_SLOP}>
+            <X size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
-          <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
-            {/* APPLICANT IDENTITY: ONLY USN IS DISPLAYED OR REVEALED */}
-            <View style={styles.applicantUsnStrip}>
+        <ScrollView
+          style={styles.scrollArea}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* APPLICANT IDENTITY: ONLY USN IS DISPLAYED OR REVEALED */}
+          <View style={styles.applicantUsnStrip}>
+            <View style={styles.applicantUsnLeft}>
               <View style={styles.applicantUsnBadge}>
                 <Text style={styles.applicantUsnBadgeText}>APPLICANT USN</Text>
               </View>
               <Text style={styles.applicantUsnValue}>{usn}</Text>
-              <Text style={styles.applicantUsnPolicy}>(Only USN is displayed or revealed on application)</Text>
             </View>
+            <Text style={styles.applicantUsnPolicy}>(Only USN is displayed or revealed on application)</Text>
+          </View>
 
             {/* ESCALATION BANNER */}
             {escalation.isExpiredLimit ? (
@@ -418,8 +429,8 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
                 </View>
               </View>
 
-              <View style={{ width: 75, minWidth: 70 }}>
-                <Text style={styles.fieldLabel}>Days</Text>
+              <View style={isCompactWidth ? styles.daysColCompact : styles.daysColWide}>
+                <Text style={styles.fieldLabel}>{isCompactWidth ? 'Total Leave Days' : 'Days'}</Text>
                 <TextInput
                   style={styles.textInputDays}
                   value={totalDays}
@@ -668,29 +679,12 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({
               )}
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
+      </BottomSheetWrapper>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-    paddingBottom: 24,
-    width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
-  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -700,6 +694,11 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    gap: 10,
+  },
+  modalHeaderTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   modalTitle: {
     fontSize: 18,
@@ -719,6 +718,7 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 8,
     backgroundColor: colors.background,
+    flexShrink: 0,
   },
   scrollArea: {
     paddingHorizontal: 20,
@@ -841,8 +841,17 @@ const styles = StyleSheet.create({
   },
   textInputInline: {
     flex: 1,
+    minWidth: 0,
     fontSize: 13,
     color: colors.text,
+    ...ANDROID_INPUT_FIX,
+  },
+  daysColCompact: {
+    width: '100%',
+  },
+  daysColWide: {
+    width: 75,
+    minWidth: 70,
   },
   textInputDays: {
     backgroundColor: colors.background,
@@ -855,6 +864,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
+    ...ANDROID_INPUT_FIX,
   },
   textArea: {
     backgroundColor: colors.background,
@@ -893,6 +903,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: colors.primaryLight,
     paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: 10,
   },
   uploadButtonUrgent: {
@@ -903,6 +914,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
+    flexShrink: 1,
+    textAlign: 'center',
   },
   uploadedFileCard: {
     flexDirection: 'row',
@@ -952,19 +965,23 @@ const styles = StyleSheet.create({
   cancelBtn: {
     flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 10,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelBtnText: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
+    textAlign: 'center',
   },
   submitBtn: {
     flex: 2,
     paddingVertical: 12,
+    paddingHorizontal: 12,
     borderRadius: 10,
     backgroundColor: colors.primary,
     alignItems: 'center',
@@ -980,6 +997,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+    textAlign: 'center',
   },
   autoOutpassNotice: {
     flexDirection: 'row',
@@ -1256,6 +1274,8 @@ const styles = StyleSheet.create({
   applicantUsnStrip: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     backgroundColor: '#EEF2FF',
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -1263,6 +1283,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#C7D2FE',
+    gap: 6,
+  },
+  applicantUsnLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   applicantUsnBadge: {
@@ -1286,8 +1311,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#6366F1',
     fontStyle: 'italic',
-    flex: 1,
-    textAlign: 'right',
+    flexShrink: 1,
   },
 });
 

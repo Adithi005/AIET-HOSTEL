@@ -24,6 +24,8 @@ import {
   Info,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { ICON_HIT_SLOP } from '../theme/layout';
+import { BottomSheetWrapper } from './BottomSheetWrapper';
 import { OutingApplication, LeaveApplication, UserProfile } from '../types';
 import { CURFEW_CONFIG } from '../utils/curfew';
 
@@ -164,67 +166,72 @@ export const ApplyHolidayPassModal: React.FC<ApplyHolidayPassModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <View style={styles.iconCircle}>
-                <Sparkles size={20} color="#FFFFFF" />
-              </View>
-              <View>
-                <Text style={styles.headerTitle}>Govt Holiday Section</Text>
-                <Text style={styles.headerSubtitle}>Select Holiday Outpass or Homepass</Text>
-              </View>
+      <BottomSheetWrapper maxHeight="92%" sheetStyle={{ minHeight: '60%' }} baseBottomPadding={8}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={styles.iconCircle}>
+              <Sparkles size={20} color="#FFFFFF" />
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+            <View style={styles.headerTextWrap}>
+              <Text style={styles.headerTitle}>Govt Holiday Section</Text>
+              <Text style={styles.headerSubtitle}>Select Holiday Outpass or Homepass</Text>
+            </View>
           </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={ICON_HIT_SLOP}>
+            <X size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
-          {/* APPLICANT IDENTITY: ONLY USN IS DISPLAYED OR REVEALED */}
-          <View style={styles.applicantUsnStrip}>
+        {/* APPLICANT IDENTITY: ONLY USN IS DISPLAYED OR REVEALED */}
+        <View style={styles.applicantUsnStrip}>
+          <View style={styles.applicantUsnLeft}>
             <View style={styles.applicantUsnBadge}>
               <Text style={styles.applicantUsnBadgeText}>APPLICANT USN</Text>
             </View>
             <Text style={styles.applicantUsnValue}>{profile?.usn || '1RV22CS089'}</Text>
-            <Text style={styles.applicantUsnPolicy}>(Only USN revealed on application)</Text>
           </View>
+          <Text style={styles.applicantUsnPolicy}>(Only USN revealed on application)</Text>
+        </View>
 
-          {/* Section Selector Tabs */}
-          <View style={styles.selectorBar}>
-            <TouchableOpacity
-              style={[styles.selectorTab, sectionTab === 'outpass' && styles.selectorTabActive]}
-              onPress={() => setSectionTab('outpass')}
-            >
-              <Compass size={16} color={sectionTab === 'outpass' ? colors.primary : colors.textSecondary} />
-              <View>
-                <Text
-                  style={[styles.selectorTabText, sectionTab === 'outpass' && styles.selectorTabTextActive]}
-                >
-                  Holiday Outpass
-                </Text>
-                <Text style={styles.selectorTabSub}>9:00 AM – 2:00 PM</Text>
-              </View>
-            </TouchableOpacity>
+        {/* Section Selector Tabs */}
+        <View style={styles.selectorBar}>
+          <TouchableOpacity
+            style={[styles.selectorTab, sectionTab === 'outpass' && styles.selectorTabActive]}
+            onPress={() => setSectionTab('outpass')}
+          >
+            <Compass size={16} color={sectionTab === 'outpass' ? colors.primary : colors.textSecondary} />
+            <View style={styles.selectorTabTextWrap}>
+              <Text
+                style={[styles.selectorTabText, sectionTab === 'outpass' && styles.selectorTabTextActive]}
+              >
+                Holiday Outpass
+              </Text>
+              <Text style={styles.selectorTabSub}>9:00 AM – 2:00 PM</Text>
+            </View>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.selectorTab, sectionTab === 'homepass' && styles.selectorTabActive]}
-              onPress={() => setSectionTab('homepass')}
-            >
-              <Home size={16} color={sectionTab === 'homepass' ? '#10B981' : colors.textSecondary} />
-              <View>
-                <Text
-                  style={[styles.selectorTabText, sectionTab === 'homepass' && { color: '#10B981' }]}
-                >
-                  Holiday Homepass
-                </Text>
-                <Text style={styles.selectorTabSub}>Instant Auto-Approved</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[styles.selectorTab, sectionTab === 'homepass' && styles.selectorTabActive]}
+            onPress={() => setSectionTab('homepass')}
+          >
+            <Home size={16} color={sectionTab === 'homepass' ? '#10B981' : colors.textSecondary} />
+            <View style={styles.selectorTabTextWrap}>
+              <Text
+                style={[styles.selectorTabText, sectionTab === 'homepass' && { color: '#10B981' }]}
+              >
+                Holiday Homepass
+              </Text>
+              <Text style={styles.selectorTabSub}>Instant Auto-Approved</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
-          <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.body}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
             {/* SUB-SECTION 1: HOLIDAY OUTPASS */}
             {sectionTab === 'outpass' && (
               <View style={styles.formCard}>
@@ -362,7 +369,7 @@ export const ApplyHolidayPassModal: React.FC<ApplyHolidayPassModalProps> = ({
                 </ScrollView>
 
                 <View style={styles.rowInputs}>
-                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <View style={[styles.inputGroup, { flex: 1, minWidth: 125 }]}>
                     <Text style={styles.inputLabel}>Departure Date</Text>
                     <TextInput
                       style={styles.input}
@@ -371,7 +378,7 @@ export const ApplyHolidayPassModal: React.FC<ApplyHolidayPassModalProps> = ({
                       placeholder="YYYY-MM-DD"
                     />
                   </View>
-                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <View style={[styles.inputGroup, { flex: 1, minWidth: 125 }]}>
                     <Text style={styles.inputLabel}>Return Date</Text>
                     <TextInput
                       style={styles.input}
@@ -385,7 +392,7 @@ export const ApplyHolidayPassModal: React.FC<ApplyHolidayPassModalProps> = ({
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Destination Home Address</Text>
                   <TextInput
-                    style={[styles.input, { minHeight: 52 }]}
+                    style={[styles.input, { minHeight: 56, textAlignVertical: 'top' }]}
                     value={homeAddress}
                     onChangeText={setHomeAddress}
                     placeholder="Complete home residential address"
@@ -420,30 +427,12 @@ export const ApplyHolidayPassModal: React.FC<ApplyHolidayPassModalProps> = ({
               </View>
             )}
           </ScrollView>
-        </View>
-      </View>
+      </BottomSheetWrapper>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '88%',
-    minHeight: '60%',
-    paddingBottom: 24,
-    width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -453,11 +442,18 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    gap: 10,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
+    minWidth: 0,
+  },
+  headerTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   iconCircle: {
     width: 40,
@@ -466,6 +462,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6366F1',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   headerTitle: {
     fontSize: 18,
@@ -484,24 +481,30 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   selectorBar: {
     flexDirection: 'row',
     padding: 8,
     backgroundColor: colors.background,
     marginHorizontal: 16,
-    marginTop: 14,
+    marginTop: 12,
     borderRadius: 14,
     gap: 8,
   },
   selectorTab: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 10,
+  },
+  selectorTabTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   selectorTabActive: {
     backgroundColor: colors.surface,
@@ -577,6 +580,7 @@ const styles = StyleSheet.create({
   },
   ruleItem: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
     padding: 8,
@@ -658,6 +662,7 @@ const styles = StyleSheet.create({
   },
   rowInputs: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
   inputLabel: {
@@ -682,6 +687,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
+    paddingHorizontal: 14,
     borderRadius: 12,
     marginTop: 8,
     shadowColor: '#000',
@@ -697,18 +703,28 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+    flexShrink: 1,
+    textAlign: 'center',
   },
   applicantUsnStrip: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     backgroundColor: '#EEF2FF',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginHorizontal: 16,
-    marginBottom: 8,
+    marginTop: 10,
+    marginBottom: 4,
     borderWidth: 1,
     borderColor: '#C7D2FE',
+    gap: 6,
+  },
+  applicantUsnLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   applicantUsnBadge: {
@@ -732,7 +748,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#6366F1',
     fontStyle: 'italic',
-    flex: 1,
-    textAlign: 'right',
+    flexShrink: 1,
   },
 });

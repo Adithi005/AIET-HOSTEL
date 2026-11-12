@@ -22,6 +22,8 @@ import {
   ShieldAlert,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { ICON_HIT_SLOP } from '../theme/layout';
+import { BottomSheetWrapper } from './BottomSheetWrapper';
 import { LeaveApplication } from '../types';
 import { getLeaveEscalationInfo } from '../utils/escalation';
 
@@ -120,20 +122,27 @@ export const ExtendLeaveModal: React.FC<ExtendLeaveModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalTitle}>Extend Approved Leave</Text>
-              <Text style={styles.modalSub}>{leave.id} • {leave.leaveType}</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+      <BottomSheetWrapper
+        maxHeight="88%"
+        baseBottomPadding={16}
+        sheetStyle={{ borderTopLeftRadius: 20, borderTopRightRadius: 20 }}
+      >
+        {/* Header */}
+        <View style={styles.modalHeader}>
+          <View style={styles.modalHeaderTextWrap}>
+            <Text style={styles.modalTitle}>Extend Approved Leave</Text>
+            <Text style={styles.modalSub}>{leave.id} • {leave.leaveType}</Text>
           </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={ICON_HIT_SLOP}>
+            <X size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.body}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
             {/* Current Leave Summary */}
             <View style={styles.currentInfoBox}>
               <View style={styles.infoRow}>
@@ -265,29 +274,12 @@ export const ExtendLeaveModal: React.FC<ExtendLeaveModalProps> = ({
               )}
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
+      </BottomSheetWrapper>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '85%',
-    paddingBottom: 20,
-    width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
-  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -297,6 +289,11 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    gap: 10,
+  },
+  modalHeaderTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   modalTitle: {
     fontSize: 16,
@@ -312,6 +309,7 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 6,
     backgroundColor: colors.background,
+    flexShrink: 0,
   },
   body: {
     paddingHorizontal: 20,
@@ -329,6 +327,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   infoLabel: {
     fontSize: 11,
@@ -339,6 +339,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.text,
+    flexShrink: 1,
   },
   tokenVal: {
     fontSize: 12,
@@ -375,17 +376,21 @@ const styles = StyleSheet.create({
   },
   daysRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginBottom: 14,
   },
   dayPill: {
     flex: 1,
+    minWidth: 54,
     paddingVertical: 8,
+    paddingHorizontal: 6,
     borderRadius: 8,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   dayPillActive: {
     backgroundColor: colors.primarySubtle,
@@ -434,6 +439,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
+    flexShrink: 1,
+    textAlign: 'center',
   },
   attachedDocRow: {
     flexDirection: 'row',
@@ -460,20 +467,24 @@ const styles = StyleSheet.create({
   cancelBtn: {
     flex: 1,
     paddingVertical: 11,
+    paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelText: {
     fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '600',
+    textAlign: 'center',
   },
   confirmBtn: {
     flex: 2,
     backgroundColor: colors.primary,
     paddingVertical: 11,
+    paddingHorizontal: 12,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -485,5 +496,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
+    textAlign: 'center',
   },
 });

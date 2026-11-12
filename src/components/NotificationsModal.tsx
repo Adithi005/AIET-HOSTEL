@@ -18,6 +18,8 @@ import {
   Trash2,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { ICON_HIT_SLOP } from '../theme/layout';
+import { BottomSheetWrapper } from './BottomSheetWrapper';
 import { StudentNotification } from '../types';
 
 interface NotificationsModalProps {
@@ -68,30 +70,33 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <View style={styles.iconCircle}>
-                <Bell size={20} color="#FFFFFF" />
-              </View>
-              <View>
-                <View style={styles.titleRow}>
-                  <Text style={styles.headerTitle}>Notifications</Text>
-                  {unreadCount > 0 && (
-                    <View style={styles.unreadBadge}>
-                      <Text style={styles.unreadBadgeText}>{unreadCount} New</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.headerSubtitle}>Curfew Alerts, SWO Desk & Pass Updates</Text>
-              </View>
+      <BottomSheetWrapper
+        maxHeight="88%"
+        sheetStyle={{ minHeight: '50%' }}
+        baseBottomPadding={16}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={styles.iconCircle}>
+              <Bell size={20} color="#FFFFFF" />
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+            <View style={styles.headerTextWrap}>
+              <View style={styles.titleRow}>
+                <Text style={styles.headerTitle}>Notifications</Text>
+                {unreadCount > 0 && (
+                  <View style={styles.unreadBadge}>
+                    <Text style={styles.unreadBadgeText}>{unreadCount} New</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.headerSubtitle}>Curfew Alerts, SWO Desk & Pass Updates</Text>
+            </View>
           </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={ICON_HIT_SLOP}>
+            <X size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
           {/* Quick Actions Bar */}
           {notifications.length > 0 && (
@@ -149,30 +154,12 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
               })
             )}
           </ScrollView>
-        </View>
-      </View>
+      </BottomSheetWrapper>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '85%',
-    minHeight: '50%',
-    paddingBottom: 28,
-    width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -182,11 +169,18 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    gap: 10,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
+    minWidth: 0,
+  },
+  headerTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   iconCircle: {
     width: 42,
@@ -195,10 +189,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
   },
   headerTitle: {
@@ -229,6 +225,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   actionBar: {
     flexDirection: 'row',
@@ -283,6 +280,7 @@ const styles = StyleSheet.create({
   },
   cardHeaderText: {
     flex: 1,
+    minWidth: 0,
   },
   cardTitle: {
     fontSize: 14,

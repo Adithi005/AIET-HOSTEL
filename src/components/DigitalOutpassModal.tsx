@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   Modal,
+  ScrollView,
   TouchableOpacity,
   Alert,
   Image,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react-native';
 import { usePreventScreenCapture } from 'expo-screen-capture';
 import { colors } from '../theme/colors';
+import { ICON_HIT_SLOP } from '../theme/layout';
 import { OutingApplication, LeaveApplication, UserProfile } from '../types';
 import { StorageService } from '../services/storage';
 import { BarcodeView } from './BarcodeView';
@@ -163,13 +165,19 @@ export const DigitalOutpassModal: React.FC<DigitalOutpassModalProps> = ({
               </Text>
             </View>
 
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.75}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.closeBtn}
+              activeOpacity={0.75}
+              hitSlop={ICON_HIT_SLOP}
+            >
               <X size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {/* Body Card */}
-          <View style={styles.cardBody}>
+          <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+            <View style={styles.cardBody}>
             {/* 1. Profile Photo and USN ONLY */}
             <View style={styles.profileUsnRow}>
               {avatarUri ? (
@@ -231,7 +239,8 @@ export const DigitalOutpassModal: React.FC<DigitalOutpassModalProps> = ({
                 )}
               </View>
             </View>
-          </View>
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -251,6 +260,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: '100%',
     maxWidth: 390,
+    maxHeight: '90%',
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
@@ -268,9 +278,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
     backgroundColor: '#F8FAFC',
+    gap: 8,
   },
   headerLeft: {
     flex: 1,
+    minWidth: 0,
   },
   passTypeTitle: {
     fontSize: 13,
@@ -288,7 +300,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12,
-    marginRight: 8,
+    flexShrink: 0,
   },
   statusReady: {
     backgroundColor: '#ECFDF5',
@@ -319,9 +331,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   closeBtn: {
-    padding: 4,
+    padding: 6,
     borderRadius: 8,
     backgroundColor: '#FFFFFF',
+    flexShrink: 0,
   },
   cardBody: {
     padding: 16,
@@ -356,6 +369,7 @@ const styles = StyleSheet.create({
   },
   usnContainer: {
     flex: 1,
+    minWidth: 0,
   },
   usnLabel: {
     fontSize: 10,
@@ -396,6 +410,7 @@ const styles = StyleSheet.create({
   },
   timingColSimple: {
     flex: 1,
+    minWidth: 0,
   },
   timingColHeader: {
     flexDirection: 'row',

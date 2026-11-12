@@ -27,6 +27,8 @@ import {
   Sun,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { ANDROID_INPUT_FIX, ICON_HIT_SLOP } from '../theme/layout';
+import { BottomSheetWrapper } from './BottomSheetWrapper';
 import { OutingType, OutingApplication, UserProfile } from '../types';
 import { getEligibleOutingDates, validateOutingDate, EligibleOutingDate } from '../utils/outingDates';
 
@@ -167,37 +169,46 @@ export const ApplyOutingModal: React.FC<ApplyOutingModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <View style={styles.headerLeft}>
-              <View style={[styles.iconBadge, dateValidation.isGovtHoliday && { backgroundColor: '#10B981' }]}>
-                <Compass size={18} color="#FFFFFF" />
-              </View>
-              <View>
-                <Text style={styles.modalTitle}>
-                  {dateValidation.isGovtHoliday ? 'Govt Holiday Outing Pass' : 'Sunday Outing Pass'}
-                </Text>
-                <Text style={[styles.modalSubtitle, dateValidation.isGovtHoliday && { color: '#059669' }]}>
-                  {dateValidation.isGovtHoliday ? 'Instant Pass • 9:00 AM – 2:00 PM' : 'Instant Digital Pass • 9:00 AM – 4:00 PM'}
-                </Text>
-              </View>
+      <BottomSheetWrapper
+        sheetStyle={{ backgroundColor: colors.background }}
+        maxHeight="92%"
+        baseBottomPadding={12}
+      >
+        {/* Header */}
+        <View style={styles.modalHeader}>
+          <View style={styles.headerLeft}>
+            <View style={[styles.iconBadge, dateValidation.isGovtHoliday && { backgroundColor: '#10B981' }]}>
+              <Compass size={18} color="#FFFFFF" />
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+            <View style={styles.headerTextWrap}>
+              <Text style={styles.modalTitle}>
+                {dateValidation.isGovtHoliday ? 'Govt Holiday Outing Pass' : 'Sunday Outing Pass'}
+              </Text>
+              <Text style={[styles.modalSubtitle, dateValidation.isGovtHoliday && { color: '#059669' }]}>
+                {dateValidation.isGovtHoliday ? 'Instant Pass • 9:00 AM – 2:00 PM' : 'Instant Digital Pass • 9:00 AM – 4:00 PM'}
+              </Text>
+            </View>
           </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={ICON_HIT_SLOP}>
+            <X size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
-          <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
-            {/* APPLICANT IDENTITY: ONLY USN IS DISPLAYED OR REVEALED */}
-            <View style={styles.applicantUsnStrip}>
+        <ScrollView
+          style={styles.scrollArea}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* APPLICANT IDENTITY: ONLY USN IS DISPLAYED OR REVEALED */}
+          <View style={styles.applicantUsnStrip}>
+            <View style={styles.applicantUsnLeft}>
               <View style={styles.applicantUsnBadge}>
                 <Text style={styles.applicantUsnBadgeText}>APPLICANT USN</Text>
               </View>
               <Text style={styles.applicantUsnValue}>{profile?.usn || '1RV22CS089'}</Text>
-              <Text style={styles.applicantUsnPolicy}>(Only USN is displayed or revealed on application)</Text>
             </View>
+            <Text style={styles.applicantUsnPolicy}>(Only USN is displayed or revealed on application)</Text>
+          </View>
 
             {/* Outing Suspended Disciplinary Notice */}
             {profile?.isOutingBlocked && (
@@ -422,7 +433,7 @@ export const ApplyOutingModal: React.FC<ApplyOutingModalProps> = ({
             {/* Timings Row (Out-Time & Return Curfew) */}
             <View style={styles.timingRow}>
               {/* Out-Time */}
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.fieldLabel}>Out Time</Text>
                 <View style={styles.inputBox}>
                   <Clock size={15} color={colors.primary} />
@@ -436,7 +447,7 @@ export const ApplyOutingModal: React.FC<ApplyOutingModalProps> = ({
               </View>
 
               {/* In-Time (Curfew) */}
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={[styles.fieldLabel, { color: colors.dangerDark }]}>
                   Return (Curfew)
                 </Text>
@@ -477,7 +488,7 @@ export const ApplyOutingModal: React.FC<ApplyOutingModalProps> = ({
 
             {/* Contact Verification */}
             <View style={styles.contactRow}>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 130 }}>
                 <Text style={styles.fieldLabel}>Student Mobile</Text>
                 <View style={styles.inputBox}>
                   <Phone size={14} color={colors.textSecondary} />
@@ -490,7 +501,7 @@ export const ApplyOutingModal: React.FC<ApplyOutingModalProps> = ({
                 </View>
               </View>
 
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 130 }}>
                 <Text style={styles.fieldLabel}>Guardian Contact</Text>
                 <View style={styles.inputBox}>
                   <Phone size={14} color={colors.textSecondary} />
@@ -530,30 +541,13 @@ export const ApplyOutingModal: React.FC<ApplyOutingModalProps> = ({
               )}
             </TouchableOpacity>
           </ScrollView>
-        </View>
-      </View>
+      </BottomSheetWrapper>
     </Modal>
   );
 };
 
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '92%',
-    paddingBottom: 24,
-    width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
-  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -566,11 +560,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    gap: 10,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  headerTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   iconBadge: {
     width: 36,
@@ -579,6 +580,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   modalTitle: {
     fontSize: 15,
@@ -594,6 +596,7 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 8,
     backgroundColor: colors.surfaceCard,
+    flexShrink: 0,
   },
   scrollArea: {
     padding: 16,
@@ -676,9 +679,10 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
+    minWidth: 0,
     fontSize: 13,
     color: colors.text,
-    paddingVertical: 0,
+    ...ANDROID_INPUT_FIX,
   },
   curfewNotice: {
     flexDirection: 'row',
@@ -709,6 +713,7 @@ const styles = StyleSheet.create({
   },
   contactRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     marginBottom: 10,
   },
@@ -719,6 +724,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
+    paddingHorizontal: 14,
     borderRadius: 12,
     marginTop: 18,
     marginBottom: 20,
@@ -733,6 +739,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.3,
+    flexShrink: 1,
+    textAlign: 'center',
   },
   blockedAlertCard: {
     flexDirection: 'row',
@@ -852,6 +860,7 @@ const styles = StyleSheet.create({
   },
   filterTabsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 6,
     marginBottom: 10,
   },
@@ -998,6 +1007,8 @@ const styles = StyleSheet.create({
   applicantUsnStrip: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     backgroundColor: '#EEF2FF',
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -1005,6 +1016,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#C7D2FE',
+    gap: 6,
+  },
+  applicantUsnLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   applicantUsnBadge: {
@@ -1028,8 +1044,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#6366F1',
     fontStyle: 'italic',
-    flex: 1,
-    textAlign: 'right',
+    flexShrink: 1,
   },
 });
 

@@ -41,6 +41,7 @@ import { DigitalOutpassModal } from '../components/DigitalOutpassModal';
 import { ApplyHolidayPassModal } from '../components/ApplyHolidayPassModal';
 import { NotificationsModal } from '../components/NotificationsModal';
 import { colors } from '../theme/colors';
+import { MONO_FONT } from '../theme/layout';
 import {
   UserProfile,
   LeaveApplication,
@@ -158,7 +159,7 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
         {/* Student History Header Card */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
-            <View style={{ flex: 1, paddingRight: 8 }}>
+            <View style={{ flex: 1, minWidth: 165, paddingRight: 8 }}>
               <View style={styles.studentBadgeRow}>
                 <Text style={styles.studentNameHeader}>{profile?.name || 'Logged-in Student'}</Text>
                 <View style={styles.usnTag}>
@@ -300,7 +301,7 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
           <View style={styles.cardsList}>
             {/* Outing Top Bar */}
             <View style={styles.outingNoticeHeader}>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 165 }}>
                 <Text style={styles.outingNoticeTitle}>Hostel Outing History</Text>
                 <Text style={styles.outingNoticeSub}>Sundays (9 AM – 4 PM) & Govt Holidays (9 AM – 2 PM) only</Text>
               </View>
@@ -334,7 +335,7 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
               myOutings.map((outing) => (
                 <View key={outing.id} style={styles.leaveCard}>
                   <View style={styles.cardTopRow}>
-                    <View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={styles.cardId}>{outing.outpassToken}</Text>
                       <Text style={styles.cardType}>{outing.outingType}</Text>
                     </View>
@@ -467,7 +468,7 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
           <View style={styles.cardsList}>
             {/* Leaves Top Bar */}
             <View style={styles.outingNoticeHeader}>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 165 }}>
                 <Text style={styles.outingNoticeTitle}>Hostel Leave History</Text>
                 <Text style={styles.outingNoticeSub}>
                   Apply 2 days before 5 PM • Quota: {leavesTaken} Days
@@ -503,7 +504,7 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
               myLeaves.map((leave) => (
                 <View key={leave.id} style={styles.leaveCard}>
                   <View style={styles.cardTopRow}>
-                    <View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={styles.cardId}>{leave.id}</Text>
                       <Text style={styles.cardType}>{leave.leaveType}</Text>
                     </View>
@@ -647,7 +648,7 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
                       <View style={styles.tokenBox}>
                         <View style={styles.tokenLeft}>
                           <QrCode size={22} color={colors.primary} />
-                          <View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
                             <Text style={styles.tokenLabel}>GATE PASS TOKEN</Text>
                             <Text style={styles.tokenNumber}>
                               {leave.gateToken || 'TK-84920'}
@@ -913,7 +914,7 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
                   <View style={styles.calHolidayDateBadge}>
                     <Text style={styles.calHolidayDateText}>{h.date.substring(5)}</Text>
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.calHolidayName}>{h.name}</Text>
                     <Text style={styles.calHolidayDesc}>{h.description}</Text>
                   </View>
@@ -940,7 +941,7 @@ export const LeaveScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
                 <View style={styles.gateBannerIconBadge}>
                   <History size={20} color="#FFFFFF" />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.gateBannerTitle}>Gate Check-In & Check-Out History</Text>
                   <Text style={styles.gateBannerSub}>
                     Security barcode logs tracking all campus exits and returns with gate station and guard details.
@@ -1301,8 +1302,10 @@ const styles = StyleSheet.create({
   },
   summaryRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 10,
   },
   simpleTitle: {
     fontSize: 15,
@@ -1353,16 +1356,20 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   tabToggleBtn: {
-    flex: 1,
     paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 8,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 4,
+    gap: 5,
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   tabToggleActive: {
     backgroundColor: colors.primarySubtle,
+    borderColor: '#C7D2FE',
   },
   tabToggleText: {
     fontSize: 11,
@@ -1387,6 +1394,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 6,
   },
   cardId: {
@@ -1403,6 +1412,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+    flexShrink: 0,
   },
   statusPillApproved: {
     backgroundColor: colors.successSubtle,
@@ -1485,6 +1495,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
     backgroundColor: '#EEF2FF',
     padding: 10,
     borderRadius: 8,
@@ -1496,6 +1508,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
+    minWidth: 130,
   },
   tokenLabel: {
     fontSize: 9,
@@ -1597,7 +1611,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     color: colors.primaryDark,
-    fontFamily: 'monospace',
+    fontFamily: MONO_FONT,
   },
   historyStatsRow: {
     flexDirection: 'row',
@@ -1669,12 +1683,14 @@ const styles = StyleSheet.create({
   regIdBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: 6,
     backgroundColor: '#F8FAFC',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
     alignSelf: 'flex-start',
+    maxWidth: '100%',
     marginBottom: 6,
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -1683,13 +1699,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#334155',
-    fontFamily: 'monospace',
+    fontFamily: MONO_FONT,
+    flexShrink: 1,
   },
   regIdBarcode: {
     fontSize: 10,
     fontWeight: '600',
     color: colors.primary,
-    fontFamily: 'monospace',
+    fontFamily: MONO_FONT,
+    flexShrink: 1,
   },
   gateTimesRow: {
     flexDirection: 'row',
@@ -1812,16 +1830,19 @@ const styles = StyleSheet.create({
   },
   leaveActionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 8,
   },
   viewPassBtn: {
     flex: 1,
+    minWidth: 130,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
   },
@@ -1829,14 +1850,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
+    textAlign: 'center',
+    flexShrink: 1,
   },
   outingNoticeHeader: {
     backgroundColor: colors.surfaceCard,
     borderRadius: 12,
     padding: 14,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 10,
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: 10,
@@ -1860,6 +1885,7 @@ const styles = StyleSheet.create({
   },
   outingActionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 10,
     paddingTop: 8,
@@ -2076,6 +2102,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 54,
+    flexShrink: 0,
   },
   calHolidayDateText: {
     fontSize: 12,
@@ -2097,6 +2124,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 14,
+    flexShrink: 0,
   },
   calApplyPillText: {
     fontSize: 11,
@@ -2140,16 +2168,18 @@ const styles = StyleSheet.create({
   },
   leaveDatesRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     backgroundColor: '#F8FAFC',
     padding: 8,
     borderRadius: 8,
-    gap: 12,
+    gap: 10,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: colors.border,
   },
   dateCol: {
     flex: 1,
+    minWidth: 78,
   },
   dateColLabel: {
     fontSize: 9,
@@ -2174,6 +2204,7 @@ const styles = StyleSheet.create({
   },
   entryTimingCol: {
     flex: 1,
+    minWidth: 0,
   },
   entryTimingDivider: {
     width: 1,
@@ -2264,6 +2295,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   gateBannerTitle: {
     fontSize: 15,
@@ -2287,6 +2319,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: 6,
   },
   gatePresenceLabel: {
@@ -2302,6 +2335,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 12,
+    flexShrink: 1,
+    maxWidth: '100%',
   },
   gatePresenceInside: {
     backgroundColor: '#ECFDF5',
@@ -2313,10 +2348,12 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
+    flexShrink: 0,
   },
   gatePresenceText: {
     fontSize: 11,
     fontWeight: '800',
+    flexShrink: 1,
   },
   gateStatsRow: {
     flexDirection: 'row',
@@ -2387,6 +2424,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: 8,
   },
   gateActionBadge: {
@@ -2452,7 +2490,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: colors.primary,
-    fontFamily: 'monospace',
+    fontFamily: MONO_FONT,
+    flexShrink: 1,
   },
   gateRemarksBox: {
     backgroundColor: '#F8FAFC',

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { MONO_FONT } from '../theme/layout';
 
 interface BarcodeViewProps {
   value: string;
@@ -17,7 +18,7 @@ export const BarcodeView: React.FC<BarcodeViewProps> = ({
   height = 50,
 }) => {
   // Deterministically generate alternating black/white bar widths from the string
-  const bars = React.useMemo(() => {
+  const { bars, totalWidth } = React.useMemo(() => {
     const cleanStr = value || 'REG-AIETNEST-001';
     const pattern: { isBlack: boolean; width: number }[] = [];
 
@@ -49,19 +50,20 @@ export const BarcodeView: React.FC<BarcodeViewProps> = ({
     pattern.push({ isBlack: true, width: 2 });
     pattern.push({ isBlack: false, width: 4 });
 
-    return pattern;
+    const sum = pattern.reduce((acc, b) => acc + b.width, 0);
+    return { bars: pattern, totalWidth: sum };
   }, [value]);
 
   return (
     <View style={styles.container}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
 
-      <View style={[styles.barcodeWrapper, { height }]}>
+      <View style={[styles.barcodeWrapper, { height, maxWidth: totalWidth }]}>
         {bars.map((bar, idx) => (
           <View
             key={idx}
             style={{
-              width: bar.width,
+              flex: bar.width,
               height: '100%',
               backgroundColor: bar.isBlack ? '#0F172A' : '#FFFFFF',
             }}
@@ -100,15 +102,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     justifyContent: 'center',
+    alignSelf: 'center',
     backgroundColor: '#FFFFFF',
-    maxWidth: '100%',
-    paddingHorizontal: 4,
+    width: '100%',
     overflow: 'hidden',
   },
   codeText: {
     fontSize: 11,
     fontWeight: '800',
-    fontFamily: 'monospace',
+    fontFamily: MONO_FONT,
     color: '#1E293B',
     letterSpacing: 1,
     marginTop: 6,

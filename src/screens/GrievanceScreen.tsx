@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -39,6 +40,7 @@ import {
 } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { colors } from '../theme/colors';
+import { KBV_BEHAVIOR } from '../theme/layout';
 import {
   UserProfile,
   GrievanceTicket,
@@ -289,11 +291,13 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
         onAdminPress={() => navigation.navigate('AdminPortal')}
       />
 
-      <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <KeyboardAvoidingView behavior={KBV_BEHAVIOR} style={{ flex: 1 }}>
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* =======================================================
             HOSTEL CARE SUB-NAV TABS
            ======================================================= */}
@@ -304,10 +308,11 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
             activeOpacity={0.8}
           >
             <Wrench
-              size={16}
+              size={15}
               color={activeCareTab === 'maintenance' ? colors.primary : colors.textSecondary}
             />
             <Text
+              numberOfLines={1}
               style={[
                 styles.careSubTabText,
                 activeCareTab === 'maintenance' && styles.careSubTabTextActive,
@@ -323,10 +328,11 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
             activeOpacity={0.8}
           >
             <Bus
-              size={16}
+              size={15}
               color={activeCareTab === 'vehicles' ? colors.primary : colors.textSecondary}
             />
             <Text
+              numberOfLines={1}
               style={[
                 styles.careSubTabText,
                 activeCareTab === 'vehicles' && styles.careSubTabTextActive,
@@ -348,7 +354,7 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
                 <View style={styles.iconCircle}>
                   <Wrench size={22} color="#FFFFFF" />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.bannerTitle}>Hostel Care & Maintenance</Text>
                   <Text style={styles.bannerDesc}>
                     Report cleanliness, room hygiene, plumbing, or facility issues with live photo verification.
@@ -362,7 +368,7 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
                   onPress={() => setIsFormVisible(true)}
                   activeOpacity={0.85}
                 >
-                  <Plus size={16} color="#FFFFFF" />
+                  <Plus size={16} color={colors.primaryDark} />
                   <Text style={styles.lodgeButtonText}>Report New Room Issue</Text>
                 </TouchableOpacity>
               )}
@@ -569,7 +575,7 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
                 <View style={styles.transitIconCircle}>
                   <Bus size={22} color="#FFFFFF" />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.transitBannerTitle}>Hostel Care Transit Service</Text>
                   <Text style={styles.transitBannerSub}>
                     Official shuttles connecting Hostel to Vidyagiri Campus & Health Center
@@ -606,7 +612,7 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
             {/* 15-MINUTE CUTOFF RULE BANNER */}
             <View style={styles.cutoffPolicyStrip}>
               <Clock size={18} color="#B45309" style={{ flexShrink: 0 }} />
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.cutoffPolicyTitle}>⏱️ Strict 15-Minute Advance Booking Rule</Text>
                 <Text style={styles.cutoffPolicyDesc}>
                   Under AIET policy, students must apply at least 15 minutes before the assigned vehicle departure time. Late bookings are locked automatically.
@@ -653,7 +659,7 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
                       size={18}
                       color={selectedDestination === 'Vidyagiri' ? colors.primary : colors.textSecondary}
                     />
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text
                         style={[
                           styles.destBtnTitle,
@@ -681,7 +687,7 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
                       size={18}
                       color={selectedDestination === 'Health Center' ? '#0D9488' : colors.textSecondary}
                     />
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text
                         style={[
                           styles.destBtnTitle,
@@ -987,7 +993,7 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
                             />
                           )}
                         </View>
-                        <View style={{ flex: 1 }}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
                           <View style={styles.slotTitleRow}>
                             <Text style={styles.slotTimeText}>{slot.departureTime}</Text>
                             <View
@@ -1081,7 +1087,7 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
                 {filteredBookings.map((student) => (
                   <View key={student.id} style={styles.rosterCard}>
                     <View style={styles.rosterCardTop}>
-                      <View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={styles.rosterStudentName}>{student.studentName}</Text>
                         <Text style={styles.rosterStudentSub}>
                           {student.usn} • Room {student.roomNumber}
@@ -1126,7 +1132,8 @@ export const GrievanceScreen: React.FC<{ navigation: any; route?: any }> = ({ na
             </View>
           </View>
         )}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -1164,10 +1171,12 @@ const styles = StyleSheet.create({
   },
   careSubTabBtn: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
+    paddingHorizontal: 8,
     borderRadius: 8,
     gap: 6,
   },
@@ -1180,9 +1189,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   careSubTabText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '600',
     color: colors.textSecondary,
+    flexShrink: 1,
+    textAlign: 'center',
   },
   careSubTabTextActive: {
     color: colors.primary,
@@ -1599,32 +1610,41 @@ const styles = StyleSheet.create({
   },
   transitStatsRow: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: 8,
   },
   transitStatCard: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: 10,
     padding: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   transitStatCardHealth: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: '#F0FDFA',
     borderWidth: 1,
     borderColor: '#99F6E4',
     borderRadius: 10,
     padding: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   transitStatCardTotal: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: '#EEF2FF',
     borderWidth: 1,
     borderColor: '#C7D2FE',
     borderRadius: 10,
     padding: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   transitStatNum: {
     fontSize: 22,
@@ -1677,6 +1697,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 13,
+    paddingHorizontal: 14,
     borderRadius: 12,
     marginBottom: 16,
     shadowColor: colors.primaryDark,
@@ -1689,6 +1710,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
+    flexShrink: 1,
+    textAlign: 'center',
   },
 
   // Form Section Labels
@@ -1745,8 +1768,9 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   vehicleCard: {
-    flex: 1,
-    minWidth: '45%',
+    flexGrow: 1,
+    flexBasis: '47%',
+    minWidth: 135,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1926,6 +1950,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 12,
+    paddingHorizontal: 14,
     borderRadius: 10,
   },
   confirmBookingBtnDisabled: {
@@ -1935,6 +1960,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
+    flexShrink: 1,
+    textAlign: 'center',
   },
 
   // Active Boarding Passes
@@ -1958,12 +1985,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
     marginBottom: 10,
   },
-  passTokenBadge: {},
+  passTokenBadge: {
+    flex: 1,
+    minWidth: 0,
+  },
   passTokenLabel: {
     fontSize: 9,
     fontWeight: '800',
@@ -1994,8 +2026,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   passCol: {
-    flex: 1,
-    minWidth: '45%',
+    flexGrow: 1,
+    flexBasis: '46%',
+    minWidth: 125,
   },
   passSubLabel: {
     fontSize: 9,
@@ -2021,6 +2054,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   driverInfoText: {
+    flex: 1,
     fontSize: 11,
     fontWeight: '600',
     color: '#0F766E',
@@ -2078,6 +2112,7 @@ const styles = StyleSheet.create({
   slotTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 6,
   },
   slotTimeText: {
@@ -2153,6 +2188,7 @@ const styles = StyleSheet.create({
   },
   rosterFilterRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 6,
     marginBottom: 10,
   },
@@ -2190,6 +2226,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 8,
   },
   rosterStudentName: {
@@ -2207,6 +2245,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+    flexShrink: 0,
   },
   rosterDestTagHealth: {
     backgroundColor: '#F0FDFA',
@@ -2220,6 +2259,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
@@ -2228,6 +2269,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: colors.text,
+    flexShrink: 1,
   },
   rosterTimeWrap: {
     flexDirection: 'row',
